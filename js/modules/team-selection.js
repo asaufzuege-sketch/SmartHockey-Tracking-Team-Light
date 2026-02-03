@@ -883,7 +883,7 @@ Reset (peruuttamaton)
         
         fr: `💡 Astuce: Toutes les infos des pages sont accessibles en cliquant sur le titre.
 
-Ablauf (Jeu)
+Déroulement (Jeu)
 1. Team Selection: Choisir ou modifier l'équipe.
 2. Player Selection: Ajouter/activer des joueurs; passer directement à Line Up ou Game Center si nécessaire.
 3. Line Up: Définir la formation (Manuel, Balanced + Power prédéfini par IA)
