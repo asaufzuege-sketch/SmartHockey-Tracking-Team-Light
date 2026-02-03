@@ -1,5 +1,5 @@
 // Storage Prefix for this app
-const STORAGE_PREFIX = 's918_';
+const STORAGE_PREFIX = 'sLight_';
 
 // Storage Utility Functions
 const AppStorage = {
