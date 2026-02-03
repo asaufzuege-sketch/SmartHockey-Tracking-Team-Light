@@ -5,9 +5,7 @@ App.teamSelection = (function() {
     console.log('Team Selection Module loading...');
     
     const TEAMS = [
-        { id: 'team1', name: 'Team 1' },
-        { id: 'team2', name: 'Team 2' },
-        { id: 'team3', name: 'Team 3' }
+        { id: 'team1', name: 'Team 1' }
     ];
     
     let currentTeamId = null;
