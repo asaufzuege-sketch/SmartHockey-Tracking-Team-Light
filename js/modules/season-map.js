@@ -1,0 +1,1316 @@
+// Season Map Modul – READ ONLY
+
+// Shows only data exported from the Goal Map.
+// NO new markers from clicks in Season Map.
+
+App.seasonMap = {
+  timeTrackingBox: null,
+  playerFilter: null,
+  timeTrackingInitialized: false, // Flag to prevent duplicate initialization
+  // Vertical split threshold (Y-coordinate) that separates green zone (scored/upper) from red zone (conceded/lower)
+  VERTICAL_SPLIT_THRESHOLD: 50,
+  // Mobile breakpoint for responsive behavior
+  MOBILE_BREAKPOINT: 768,
+  // Heatmap configuration
+  HEATMAP_RENDER_DELAY: 150, // ms delay after marker rendering to ensure proper positioning
+  HEATMAP_RADIUS_FACTOR: 0.15, // Heatmap gradient radius as percentage of smaller dimension (desktop)
+  HEATMAP_RADIUS_FACTOR_MOBILE: 0.04, // MUCH smaller radius for mobile devices (was 0.08, now 0.04)
+  HEATMAP_MIN_OPACITY: 0.2, // Minimum opacity for low-density areas
+  HEATMAP_MAX_OPACITY: 0.95, // Maximum opacity for high-density areas
+  HEATMAP_DENSITY_POWER: 0.7, // Power function exponent for density scaling (< 1 for faster initial rise)
+  HEATMAP_GRADIENT_MIDPOINT_OPACITY: 0.6, // Opacity multiplier at gradient midpoint for smoother transitions
+  
+  // Helper to detect mobile viewport
+  isMobileView() {
+    return window.innerWidth <= this.MOBILE_BREAKPOINT;
+  },
+  
+  // Get appropriate heatmap radius factor based on viewport
+  getHeatmapRadiusFactor() {
+    return this.isMobileView() ? this.HEATMAP_RADIUS_FACTOR_MOBILE : this.HEATMAP_RADIUS_FACTOR;
+  },
+  
+  init() {
+    this.timeTrackingBox = document.getElementById("seasonMapTimeTrackingBox");
+    this.playerFilter = null;
+    
+    // Buttons
+    document.getElementById("exportSeasonMapBtn")?.addEventListener("click", () => {
+      this.exportFromGoalMap();
+    });
+    
+    document.getElementById("exportSeasonMapPageBtn")?.addEventListener("click", () => {
+      this.exportAsImage();
+    });
+    
+    document.getElementById("resetSeasonMapBtn")?.addEventListener("click", () => {
+      this.reset();
+    });
+    
+    // Time Tracking read-only
+    this.initTimeTracking();
+    
+    // Player Filter
+    this.initPlayerFilter();
+    
+    // Add window resize listener to reposition markers (with cleanup)
+    if (this.resizeListener) {
+      window.removeEventListener("resize", this.resizeListener);
+    }
+    
+    this.resizeListener = () => {
+      // Debounce resize events
+      clearTimeout(this.resizeTimeout);
+      this.resizeTimeout = setTimeout(() => {
+        if (App.markerHandler && typeof App.markerHandler.repositionMarkers === 'function') {
+          App.markerHandler.repositionMarkers();
+        }
+        // Re-render heatmap when switching between mobile/desktop views
+        this.renderHeatmap();
+      }, 100);
+    };
+    window.addEventListener("resize", this.resizeListener);
+  },
+  
+  // -----------------------------
+  // Player Filter
+  // -----------------------------
+  initPlayerFilter() {
+    const filterSelect = document.getElementById("seasonMapPlayerFilter");
+    if (!filterSelect) return;
+    
+    filterSelect.innerHTML = '<option value="">All Players</option>';
+    // Nur Spieler ohne Goalie-Position (G) in die Liste aufnehmen
+    (App.data.selectedPlayers || [])
+      .filter(player => player.position !== "G")
+      .forEach(player => {
+        const option = document.createElement("option");
+        option.value = player.name;
+        option.textContent = player.name;
+        filterSelect.appendChild(option);
+      });
+    
+    filterSelect.addEventListener("change", () => {
+      this.playerFilter = filterSelect.value || null;
+      this.applyPlayerFilter();
+      
+      if (this.playerFilter) {
+        filterSelect.classList.add("active");
+      } else {
+        filterSelect.classList.remove("active");
+      }
+    });
+    
+    const teamId = App.helpers.getCurrentTeamId();
+    const savedFilter = AppStorage.getItem(`seasonMapPlayerFilter_${teamId}`);
+    if (savedFilter) {
+      filterSelect.value = savedFilter;
+      this.playerFilter = savedFilter;
+    }
+    
+    // Goalie Filter Dropdown - populate with ALL goalies ever entered for this team's season
+    const goalieFilterSelect = document.getElementById("seasonMapGoalieFilter");
+    if (goalieFilterSelect) {
+      // Collect all unique goalies from season data (markers and time data)
+      const allGoalies = new Set();
+      
+      // Get goalies from markers
+      const teamId = App.helpers.getCurrentTeamId();
+      const allMarkers = App.helpers.safeJSONParse(`seasonMapMarkers_${teamId}`, []);
+      if (allMarkers) {
+        allMarkers.forEach(markersForBox => {
+          if (Array.isArray(markersForBox)) {
+            markersForBox.forEach(m => {
+              if (m.player) {
+                allGoalies.add(m.player);
+              }
+            });
+          }
+        });
+      }
+      
+      // Get goalies from time data
+      const timeDataRaw = AppStorage.getItem(`seasonMapTimeDataWithPlayers_${teamId}`);
+      if (timeDataRaw) {
+        try {
+          const timeData = JSON.parse(timeDataRaw);
+          Object.values(timeData).forEach(playerData => {
+            if (typeof playerData === 'object' && playerData !== null) {
+              Object.keys(playerData).forEach(playerName => {
+                allGoalies.add(playerName);
+              });
+            }
+          });
+        } catch (e) {
+          console.warn("Failed to parse seasonMapTimeDataWithPlayers for goalie filter", e);
+        }
+      }
+      
+      // Filter to only include players that are goalies in current selection
+      const currentGoalies = (App.data.selectedPlayers || [])
+        .filter(p => p.position === "G")
+        .map(g => g.name);
+      
+      // Use intersection: players that are in allGoalies AND are currently marked as goalies
+      const seasonGoalies = Array.from(allGoalies).filter(name => currentGoalies.includes(name));
+      
+      // If no goalies found in season data, use currently selected goalies as fallback
+      const goaliesToShow = seasonGoalies.length > 0 ? seasonGoalies : currentGoalies;
+      
+      goalieFilterSelect.innerHTML = '<option value="">All Goalies</option>';
+      goaliesToShow.forEach(goalieName => {
+        const option = document.createElement("option");
+        option.value = goalieName;
+        option.textContent = goalieName;
+        goalieFilterSelect.appendChild(option);
+      });
+      
+      goalieFilterSelect.addEventListener("change", () => {
+        const selectedGoalie = goalieFilterSelect.value;
+        const teamId = App.helpers.getCurrentTeamId();
+        
+        if (selectedGoalie && selectedGoalie !== "") {
+          AppStorage.setItem(`seasonMapActiveGoalie_${teamId}`, selectedGoalie);
+          goalieFilterSelect.classList.add("active");
+          this.filterByGoalies([selectedGoalie]);
+        } else {
+          AppStorage.removeItem(`seasonMapActiveGoalie_${teamId}`);
+          goalieFilterSelect.classList.remove("active");
+          const allGoalies = this.getAllGoaliesFromData();
+          this.filterByGoalies(allGoalies);
+        }
+      });
+    }
+  },
+  
+  // Helper: Refresh momentum graphic if available
+  refreshMomentumGraphic() {
+    if (typeof window.renderSeasonMomentumGraphic === 'function') {
+      window.renderSeasonMomentumGraphic();
+    }
+  },
+  
+  // Helper: Check if marker is in GREEN zone
+  isGreenZoneMarker(marker, box) {
+    if (box.id === 'seasonGoalGreenBox') return true;
+    if (box.id === 'seasonGoalRedBox') return false;
+    
+    if (marker.dataset.zone) {
+      return marker.dataset.zone === 'green';
+    }
+    
+    const color = marker.style.backgroundColor || '';
+    const isGreenColor = color.includes('0, 255, 102') || color.includes('00ff66');
+    if (isGreenColor) return true;
+    
+    const isGreyColor = color.includes('68, 68, 68') || color.includes('444444');
+    if (isGreyColor) {
+      const yPctImage = parseFloat(marker.dataset.yPctImage);
+      if (!isNaN(yPctImage) && yPctImage > 0) {
+        return yPctImage < this.VERTICAL_SPLIT_THRESHOLD;
+      }
+      const top = parseFloat((marker.style.top || '0').replace('%', '')) || 0;
+      return top < this.VERTICAL_SPLIT_THRESHOLD;
+    }
+    
+    return false;
+  },
+  
+  // Helper: Check if marker is in RED zone
+  isRedZoneMarker(marker, box) {
+    if (box.id === 'seasonGoalRedBox') return true;
+    if (box.id === 'seasonGoalGreenBox') return false;
+    
+    if (marker.dataset.zone) {
+      return marker.dataset.zone === 'red';
+    }
+    
+    const color = marker.style.backgroundColor || '';
+    const isRedColor = color.includes('255, 0, 0') || color.includes('ff0000');
+    if (isRedColor) return true;
+    
+    const isGreyColor = color.includes('68, 68, 68') || color.includes('444444');
+    if (isGreyColor) {
+      const yPctImage = parseFloat(marker.dataset.yPctImage);
+      if (!isNaN(yPctImage) && yPctImage > 0) {
+        return yPctImage >= this.VERTICAL_SPLIT_THRESHOLD;
+      }
+      const top = parseFloat((marker.style.top || '0').replace('%', '')) || 0;
+      return top >= this.VERTICAL_SPLIT_THRESHOLD;
+    }
+    
+    return false;
+  },
+  
+  // Get all unique goalies from season data
+  getAllGoaliesFromData() {
+    const allGoalies = new Set();
+    
+    const teamId = App.helpers.getCurrentTeamId();
+    const markersRaw = AppStorage.getItem(`seasonMapMarkers_${teamId}`);
+    if (markersRaw) {
+      try {
+        const allMarkers = JSON.parse(markersRaw);
+        allMarkers.forEach(markersForBox => {
+          if (Array.isArray(markersForBox)) {
+            markersForBox.forEach(m => {
+              if (m.player && m.zone === 'red') {
+                allGoalies.add(m.player);
+              }
+            });
+          }
+        });
+      } catch (e) {}
+    }
+    
+    return Array.from(allGoalies);
+  },
+  
+  filterByGoalies(goalieNames, skipStatsRender = false) {
+    const allGoalies = this.getAllGoaliesFromData();
+    const isAllGoaliesFilter = (goalieNames.length === allGoalies.length && 
+                                 goalieNames.every(name => allGoalies.includes(name)));
+    
+    const boxes = document.querySelectorAll(App.selectors.seasonMapBoxes);
+    boxes.forEach(box => {
+      const markers = box.querySelectorAll(".marker-dot");
+      markers.forEach(marker => {
+        const isRedMarker = this.isRedZoneMarker(marker, box);
+        
+        if (isRedMarker) {
+          const playerName = marker.dataset.player;
+          
+          if (isAllGoaliesFilter) {
+            marker.style.display = '';
+          } else if (playerName && goalieNames.includes(playerName)) {
+            marker.style.display = '';
+          } else {
+            marker.style.display = 'none';
+          }
+        }
+      });
+    });
+    
+    this.applyGoalieTimeTrackingFilter(goalieNames);
+    
+    // Update Momentum Graphic when goalie filter changes
+    this.refreshMomentumGraphic();
+    
+    // Update heatmap after filter change
+    this.renderHeatmap();
+    
+    // Update goalie statistics (skip during initial render to avoid counting before all filters applied)
+    if (!skipStatsRender) {
+      this.renderGoalAreaStats();
+    }
+  },
+  
+  applyGoalieTimeTrackingFilter(goalieNames) {
+    if (!this.timeTrackingBox) return;
+    
+    const teamId = App.helpers.getCurrentTeamId();
+    const timeDataWithPlayers = App.helpers.safeJSONParse(`seasonMapTimeDataWithPlayers_${teamId}`, {});
+    
+    this.timeTrackingBox.querySelectorAll(".period").forEach((period, pIdx) => {
+      const periodNum = period.dataset.period || `sp${pIdx + 1}`;
+      const buttons = period.querySelectorAll(".time-btn");
+      
+      buttons.forEach((btn, idx) => {
+        // Map season period to goal map period for data lookup
+        const goalMapPeriod = periodNum.replace('sp', 'p');
+        const key = `${goalMapPeriod}_${idx}`;
+        const playerData = timeDataWithPlayers[key] || {};
+        
+        let displayVal = 0;
+        goalieNames.forEach(goalieName => {
+          displayVal += Number(playerData[goalieName]) || 0;
+        });
+        
+        btn.textContent = displayVal;
+      });
+    });
+  },
+  
+  applyPlayerFilter(skipStatsRender = false) {
+    const teamId = App.helpers.getCurrentTeamId();
+    if (this.playerFilter) {
+      AppStorage.setItem(`seasonMapPlayerFilter_${teamId}`, this.playerFilter);
+    } else {
+      AppStorage.removeItem(`seasonMapPlayerFilter_${teamId}`);
+    }
+    
+    const boxes = document.querySelectorAll(App.selectors.seasonMapBoxes);
+    boxes.forEach(box => {
+      const markers = box.querySelectorAll(".marker-dot");
+      markers.forEach(marker => {
+        const isGreenMarker = this.isGreenZoneMarker(marker, box);
+        
+        if (isGreenMarker) {
+          if (this.playerFilter) {
+            marker.style.display = (marker.dataset.player === this.playerFilter) ? '' : 'none';
+          } else {
+            marker.style.display = '';
+          }
+        }
+      });
+    });
+    
+    this.applyTimeTrackingFilter();
+    
+    // Update Momentum Graphic when player filter changes
+    this.refreshMomentumGraphic();
+    
+    // Update heatmap after filter change
+    this.renderHeatmap();
+    
+    // Update goalie statistics (skip during initial render to avoid counting before all filters applied)
+    if (!skipStatsRender) {
+      this.renderGoalAreaStats();
+    }
+  },
+  
+  // Apply player filter to time tracking
+  applyTimeTrackingFilter() {
+    if (!this.timeTrackingBox) return;
+    
+    const teamId = App.helpers.getCurrentTeamId();
+    const timeDataWithPlayers = App.helpers.safeJSONParse(`seasonMapTimeDataWithPlayers_${teamId}`, {});
+    
+    this.timeTrackingBox.querySelectorAll(".period").forEach((period, pIdx) => {
+      const periodNum = period.dataset.period || `sp${pIdx + 1}`;
+      const buttons = period.querySelectorAll(".time-btn");
+      
+      buttons.forEach((btn, idx) => {
+        const goalMapPeriod = periodNum.replace('sp', 'p');
+        const key = `${goalMapPeriod}_${idx}`;
+        const playerData = timeDataWithPlayers[key] || {};
+        
+        let displayVal = 0;
+        if (this.playerFilter) {
+          displayVal = Number(playerData[this.playerFilter]) || 0;
+        } else {
+          displayVal = Object.values(playerData).reduce((sum, val) => sum + (Number(val) || 0), 0);
+        }
+        
+        btn.textContent = displayVal;
+      });
+    });
+  },
+  
+  // -----------------------------
+  // Render: Marker aus Storage laden (READ ONLY)
+  // -----------------------------
+  render() {
+    const boxes = Array.from(document.querySelectorAll(App.selectors.seasonMapBoxes));
+    
+    // CRITICAL: Remove ALL existing markers before creating new ones
+    boxes.forEach(box => box.querySelectorAll(".marker-dot").forEach(d => d.remove()));
+    
+    // CSS steuert die Bildgröße - kein JavaScript-Override mehr nötig
+    // Stelle sicher dass die Boxen relativ positioniert sind für Marker
+    boxes.forEach(box => {
+      box.style.position = 'relative';
+    });
+    
+    // Marker laden (werden NICHT neu gesetzt, nur angezeigt)
+    const teamId = App.helpers.getCurrentTeamId();
+    const allMarkers = App.helpers.safeJSONParse(`seasonMapMarkers_${teamId}`, null);
+    if (allMarkers) {
+      allMarkers.forEach((markersForBox, idx) => {
+        const box = boxes[idx];
+        if (!box || !Array.isArray(markersForBox)) return;
+          
+          markersForBox.forEach(m => {
+            // Skip markers with invalid coordinates (0, 0, undefined, null, or very small values)
+            if (!m.xPct || !m.yPct || 
+                m.xPct < 0.1 || m.yPct < 0.1 ||
+                isNaN(m.xPct) || isNaN(m.yPct)) {
+              console.warn('[Season Map] Skipping marker with invalid coordinates:', m);
+              return;
+            }
+            
+            App.markerHandler.createMarkerPercent(
+              m.xPct,
+              m.yPct,
+              m.color || "#444444",
+              box,
+              false, // NICHT interaktiv (kein Entfernen per Klick)
+              m.player || null
+            );
+            
+            // Restore zone attribute
+            const dots = box.querySelectorAll(".marker-dot");
+            const lastDot = dots[dots.length - 1];
+            if (lastDot && m.zone) {
+              lastDot.dataset.zone = m.zone;
+            }
+          });
+        });
+    }
+    
+    // Apply filters after restoring
+    this.applyPlayerFilter(true); // Skip stats render - will be called after both filters applied
+    
+    const savedGoalie = AppStorage.getItem(`seasonMapActiveGoalie_${teamId}`);
+    if (savedGoalie) {
+      this.filterByGoalies([savedGoalie], true); // Skip stats render - will be called after both filters applied
+    } else {
+      const allGoalies = this.getAllGoaliesFromData();
+      this.filterByGoalies(allGoalies, true); // Skip stats render - will be called after both filters applied
+    }
+    
+    // Reposition markers after rendering to ensure correct placement
+    if (App.markerHandler && typeof App.markerHandler.repositionMarkers === 'function') {
+      setTimeout(() => {
+        App.markerHandler.repositionMarkers();
+      }, 100);
+    }
+    
+    // Render heatmap after markers are positioned
+    setTimeout(() => {
+      this.renderHeatmap();
+      // Render goalie statistics (5 zones with percentages and counts)
+      this.renderGoalAreaStats();
+    }, this.HEATMAP_RENDER_DELAY);
+  },
+  
+  // -----------------------------
+  // Heatmap Rendering
+  // -----------------------------
+  renderHeatmap() {
+    const fieldBox = document.getElementById('seasonFieldBox');
+    if (!fieldBox) return;
+    
+    // Remove existing heatmap
+    const existingCanvas = fieldBox.querySelector('.heatmap-canvas');
+    if (existingCanvas) existingCanvas.remove();
+    
+    // Create canvas overlay
+    const canvas = document.createElement('canvas');
+    canvas.className = 'heatmap-canvas';
+    
+    const img = fieldBox.querySelector('img');
+    if (!img) return;
+    
+    // Compute rendered image rectangle (accounting for object-fit: contain)
+    const renderedImageRect = App.markerHandler.computeRenderedImageRect(img);
+    if (!renderedImageRect || !renderedImageRect.valid) {
+      console.warn('[Season Map] Cannot render heatmap: image rect not available');
+      return;
+    }
+    
+    // Set canvas size to match the RENDERED image size (not container)
+    canvas.width = renderedImageRect.width;
+    canvas.height = renderedImageRect.height;
+    
+    // Validate canvas dimensions
+    if (canvas.width === 0 || canvas.height === 0) {
+      console.warn('[Season Map] Cannot render heatmap: image not loaded or has zero dimensions');
+      return;
+    }
+    
+    // Position canvas at top-left of container (image fills container)
+    canvas.style.left = '0';
+    canvas.style.top = '0';
+    canvas.style.position = 'absolute';
+    canvas.style.width = `${renderedImageRect.width}px`;
+    canvas.style.height = `${renderedImageRect.height}px`;
+    
+    const ctx = canvas.getContext('2d');
+    if (!ctx) {
+      console.warn('[Season Map] Cannot render heatmap: canvas context unavailable');
+      return;
+    }
+    
+    // Get all markers
+    const markers = fieldBox.querySelectorAll('.marker-dot');
+    
+    // Separate markers by ACTUAL COLOR instead of zone
+    const greenMarkers = []; // Green markers: Tore erzielt (scored goals)
+    const greyMarkers = [];  // Grey markers: Schüsse daneben (missed shots)
+    const redMarkers = [];   // Red markers: Gegentore (conceded goals)
+    
+    markers.forEach(marker => {
+      // Skip hidden markers
+      if (marker.style.display === 'none') return;
+      
+      const yPct = parseFloat(marker.dataset.yPctImage) || 0;
+      const xPct = parseFloat(marker.dataset.xPctImage) || 0;
+      
+      // Skip markers with invalid coordinates (0,0 or out of bounds)
+      if (xPct < 0.1 || yPct < 0.1 || xPct >= 100 || yPct >= 100) return;
+      
+      // Determine marker color from backgroundColor
+      // Parse RGB values for robust comparison (handles rgb/rgba formats)
+      const bgColor = marker.style.backgroundColor || '';
+      
+      // Parse color to RGB values
+      let r = 0, g = 0, b = 0;
+      const rgbMatch = bgColor.match(/rgba?\s*\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)/i);
+      if (rgbMatch) {
+        r = parseInt(rgbMatch[1], 10);
+        g = parseInt(rgbMatch[2], 10);
+        b = parseInt(rgbMatch[3], 10);
+      }
+      
+      // Helper to check if color is grey (r ≈ g ≈ b within tolerance)
+      const isGreyColor = (r, g, b) => {
+        return r > 50 && r < 100 && 
+               g > 50 && g < 100 && 
+               b > 50 && b < 100 && 
+               Math.abs(r - g) < 20 && 
+               Math.abs(r - b) < 20;
+      };
+      
+      // Categorize by color with tolerance for slight variations
+      // Green: rgb(0, 255, 102) - scored goals
+      if (r < 50 && g > 200 && b > 50 && b < 150) {
+        greenMarkers.push({ x: xPct, y: yPct });
+      }
+      // Grey: rgb(68, 68, 68) - missed shots
+      else if (isGreyColor(r, g, b)) {
+        greyMarkers.push({ x: xPct, y: yPct });
+      }
+      // Red: rgb(255, 0, 0) - conceded goals
+      else if (r > 200 && g < 50 && b < 50) {
+        redMarkers.push({ x: xPct, y: yPct });
+      }
+    });
+    
+    // Draw heatmaps for each color type
+    // Green markers (scored goals) → green glow
+    this.drawHeatmapZone(ctx, greenMarkers, canvas.width, canvas.height, 'rgba(0, 255, 102, 0.6)');
+    
+    // Grey markers (missed shots) → grey glow
+    this.drawHeatmapZone(ctx, greyMarkers, canvas.width, canvas.height, 'rgba(68, 68, 68, 0.6)');
+    
+    // Red markers (conceded goals) → red glow
+    this.drawHeatmapZone(ctx, redMarkers, canvas.width, canvas.height, 'rgba(255, 0, 0, 0.6)');
+    
+    fieldBox.appendChild(canvas);
+  },
+  
+  drawHeatmapZone(ctx, markers, width, height, color) {
+    if (markers.length === 0) return;
+    
+    // Calculate radius once for all markers in this zone, using mobile-aware radius factor
+    const radiusFactor = this.getHeatmapRadiusFactor();
+    const radius = Math.min(width, height) * radiusFactor;
+    
+    // Calculate local density for each marker (how many markers are nearby)
+    const densities = markers.map((marker, idx) => {
+      const x = (marker.x / 100) * width;
+      const y = (marker.y / 100) * height;
+      
+      // Count nearby markers within 2x radius
+      const nearbyCount = markers.reduce((count, otherMarker, otherIdx) => {
+        if (idx === otherIdx) return count;
+        
+        const otherX = (otherMarker.x / 100) * width;
+        const otherY = (otherMarker.y / 100) * height;
+        const distance = Math.hypot(x - otherX, y - otherY);
+        
+        // Count markers within 2x radius as contributing to density
+        return distance <= (radius * 2) ? count + 1 : count;
+      }, 1); // Start with 1 to count the marker itself
+      
+      return nearbyCount;
+    });
+    
+    // Find max density for normalization
+    const maxDensity = Math.max(...densities);
+    
+    // Parse base color to extract RGB values
+    const baseColorMatch = color.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/);
+    if (!baseColorMatch) {
+      console.warn('[Season Map] Invalid color format for heatmap:', color);
+      return;
+    }
+    
+    const r = parseInt(baseColorMatch[1], 10);
+    const g = parseInt(baseColorMatch[2], 10);
+    const b = parseInt(baseColorMatch[3], 10);
+    
+    // Validate RGB values are in valid range
+    if (r < 0 || r > 255 || g < 0 || g > 255 || b < 0 || b > 255) {
+      console.warn('[Season Map] Invalid RGB values for heatmap:', { r, g, b });
+      return;
+    }
+    
+    markers.forEach((marker, idx) => {
+      const x = (marker.x / 100) * width;
+      const y = (marker.y / 100) * height;
+      
+      // Calculate opacity based on local density with improved scaling
+      // Use exponential scaling to create more dramatic differences
+      const densityRatio = densities[idx] / maxDensity;
+      
+      // Enhanced opacity range for better visual contrast
+      // Apply power function for more dramatic increase in high-density areas
+      const opacityRange = this.HEATMAP_MAX_OPACITY - this.HEATMAP_MIN_OPACITY;
+      
+      // Apply power < 1 to create a curve that rises faster initially, then slower at high densities
+      // This makes medium-density areas more visible while still emphasizing high-density concentrations
+      const enhancedRatio = Math.pow(densityRatio, this.HEATMAP_DENSITY_POWER);
+      const opacity = this.HEATMAP_MIN_OPACITY + (enhancedRatio * opacityRange);
+      
+      // Create radial gradient for each point
+      const gradient = ctx.createRadialGradient(x, y, 0, x, y, radius);
+      
+      // Use density-adjusted opacity for more intense glow in dense areas
+      // Inner circle has full opacity, outer circle fades to transparent
+      gradient.addColorStop(0, `rgba(${r}, ${g}, ${b}, ${opacity})`);
+      gradient.addColorStop(0.5, `rgba(${r}, ${g}, ${b}, ${opacity * this.HEATMAP_GRADIENT_MIDPOINT_OPACITY})`);
+      gradient.addColorStop(1, 'rgba(0, 0, 0, 0)');
+      
+      ctx.fillStyle = gradient;
+      ctx.beginPath();
+      ctx.arc(x, y, radius, 0, Math.PI * 2);
+      ctx.fill();
+    });
+  },
+  
+  // -----------------------------
+  // Export aus Goal Map → Season Map
+  // -----------------------------
+  exportFromGoalMap() {
+    if (!confirm("In Season Map exportieren?")) return;
+    
+    // OVERWRITE mode: Read markers from Goal Map and replace Season Map data completely
+    // This ensures no duplication and clean state for each export
+    const boxes = Array.from(document.querySelectorAll(App.selectors.torbildBoxes));
+    const allMarkers = boxes.map(box => {
+      const markers = [];
+      // Add null check for box
+      if (!box) return markers;
+      
+      box.querySelectorAll(".marker-dot").forEach(dot => {
+        // CRITICAL FIX: Read from dataset (image-relative coordinates) instead of style
+        // This ensures we export the exact percentages that heatmap uses
+        const xPct = parseFloat(dot.dataset.xPctImage) || 0;
+        const yPct = parseFloat(dot.dataset.yPctImage) || 0;
+        const bg = dot.style.backgroundColor || "";
+        
+        // Validate parsed coordinates - skip invalid markers (NaN, undefined, or very small values close to 0)
+        // The < 0.1 check handles both zero and very small values that are likely invalid
+        if (isNaN(xPct) || isNaN(yPct) || xPct < 0.1 || yPct < 0.1) {
+          console.warn('[Season Map Export] Skipping marker with invalid coordinates:', { xPct, yPct });
+          return;
+        }
+        
+        const playerName = dot.dataset.player || null;
+        
+        // Determine zone based on box and position
+        const zone = dot.dataset.zone || (yPct >= this.VERTICAL_SPLIT_THRESHOLD ? "red" : "green");
+        
+        markers.push({ xPct, yPct, color: bg, player: playerName, zone });
+      });
+      return markers;
+    });
+    
+    // OVERWRITE: Replace existing data completely
+    const teamId = App.helpers.getCurrentTeamId();
+    AppStorage.setItem(`seasonMapMarkers_${teamId}`, JSON.stringify(allMarkers));
+    
+    // Time data: OVERWRITE with current game data
+    const newTimeData = App.helpers.safeJSONParse(`timeDataWithPlayers_${teamId}`, {});
+    AppStorage.setItem(`seasonMapTimeDataWithPlayers_${teamId}`, JSON.stringify(newTimeData));
+    
+    // Flache Zeitdaten für Momentum-Graph
+    // Format: { "p1": [button0, button1, ..., button7], "p2": [...], "p3": [...] }
+    const momentumData = {};
+    const periods = ['p1', 'p2', 'p3'];
+    
+    periods.forEach(periodNum => {
+      const periodValues = [];
+      // 8 Buttons pro Period (0-3 top-row/scored, 4-7 bottom-row/conceded)
+      for (let btnIdx = 0; btnIdx < 8; btnIdx++) {
+        const key = `${periodNum}_${btnIdx}`;
+        const playerData = newTimeData[key] || {};
+        const total = Object.values(playerData).reduce((sum, val) => sum + Number(val || 0), 0);
+        periodValues.push(total);
+      }
+      momentumData[periodNum] = periodValues;
+    });
+    
+    // Speichere für Momentum-Graph
+    AppStorage.setItem(`seasonMapTimeData_${teamId}`, JSON.stringify(momentumData));
+    
+    const keep = confirm("Game exported to Season Map. Keep data in Goal Map? (OK = Yes)");
+    if (!keep) {
+      document.querySelectorAll("#torbildPage .marker-dot").forEach(d => d.remove());
+      document.querySelectorAll("#torbildPage .time-btn").forEach(btn => btn.textContent = "0");
+      AppStorage.removeItem(`timeData_${teamId}`);
+      AppStorage.removeItem(`timeDataWithPlayers_${teamId}`);
+    }
+    
+    // Show the season map page
+    App.showPage("seasonMap");
+    
+    // Explicitly call render() to display the exported data immediately
+    // This ensures markers are rendered even if showPage() doesn't trigger it
+    // (e.g., if the page is already visible or markers exist in DOM from previous session)
+    this.render();
+    
+    // Momentum-Grafik aktualisieren
+    // Timeout benötigt, damit Page-Wechsel, Rendering und localStorage-Änderungen abgeschlossen sind
+    if (typeof window.renderSeasonMomentumGraphic === 'function') {
+      setTimeout(() => {
+        window.renderSeasonMomentumGraphic();
+      }, 100);
+    }
+  },
+  
+  // liest die Zeitdaten aus der Goal Map Box
+  readTimeTrackingFromBox() {
+    const result = {};
+    const box = document.getElementById("timeTrackingBox");
+    if (!box) return result;
+    
+    box.querySelectorAll(".period").forEach((period, pIdx) => {
+      const key = period.dataset.period || (`p${pIdx}`);
+      result[key] = [];
+      period.querySelectorAll(".time-btn").forEach(btn => {
+        result[key].push(Number(btn.textContent) || 0);
+      });
+    });
+    return result;
+  },
+  
+  // schreibt Zeitdaten in die SeasonMap-Zeitbox
+  writeTimeTrackingToBox(timeDataWithPlayers) {
+    if (!this.timeTrackingBox || !timeDataWithPlayers) return;
+    
+    const periods = Array.from(this.timeTrackingBox.querySelectorAll(".period"));
+    periods.forEach((period, pIdx) => {
+      const periodKey = period.dataset.period || `sp${pIdx}`;
+      period.querySelectorAll(".time-btn").forEach((btn, btnIdx) => {
+        const buttonId = `${periodKey}_${btnIdx}`;
+        const playerData = timeDataWithPlayers[buttonId] || {};
+        
+        let count = 0;
+        if (this.playerFilter) {
+          count = playerData[this.playerFilter] || 0;
+        } else {
+          count = Object.values(playerData).reduce((sum, val) => sum + (Number(val) || 0), 0);
+        }
+        
+        btn.textContent = count;
+      });
+    });
+  },
+  
+  // Zeitbuttons deaktivieren (read-only)
+  initTimeTracking() {
+    if (!this.timeTrackingBox) return;
+    
+    // Allow re-initialization to fix event listener attachment after page refresh/navigation
+    if (this.timeTrackingInitialized) {
+      console.log("[Season Map] Re-initializing TimeTracking to refresh event listeners...");
+      // Continue with re-initialization instead of returning
+    } else {
+      console.log("[Season Map] First-time TimeTracking initialization...");
+    }
+    this.timeTrackingInitialized = true;
+    
+    // Make bottom-row buttons (conceded goals) interactive for goalie assignment
+    this.timeTrackingBox.querySelectorAll(".time-btn").forEach((btn, index) => {
+      const period = btn.closest(".period");
+      const isBottomRow = btn.closest(".period-buttons")?.classList.contains("bottom-row");
+      
+      if (isBottomRow) {
+        // Bottom-row buttons (conceded goals) are interactive
+        // Clone button to remove any existing event listeners (prevents duplicates on re-initialization)
+        // Note: These buttons are only managed by this module, so removing all listeners is safe.
+        const newBtn = btn.cloneNode(true);
+        newBtn.disabled = false;
+        newBtn.classList.remove("disabled-readonly");
+        btn.parentNode.replaceChild(newBtn, btn);
+        
+        // Add click handler for goalie selection on the new button
+        newBtn.addEventListener("click", () => {
+          this.handleConcededGoalClick(newBtn, period);
+        });
+      } else {
+        // Top-row buttons (scored goals) remain read-only
+        btn.disabled = true;
+        btn.classList.add("disabled-readonly");
+      }
+    });
+  },
+  
+  // Handle click on conceded goal time button (red zone)
+  handleConcededGoalClick(btn, period) {
+    // Get current goalies from selectedPlayers
+    const goalies = (App.data.selectedPlayers || [])
+      .filter(p => p && p.position === "G")
+      .map(g => g.name);
+    
+    if (goalies.length === 0) {
+      alert("No goalies available. Please select goalies in Player Selection first.");
+      return;
+    }
+    
+    // Show goalie selection modal
+    this.showGoalieSelectionModal(goalies, (selectedGoalie) => {
+      if (selectedGoalie) {
+        // Get the key for this button
+        const periodNum = period.dataset.period;
+        const buttons = Array.from(period.querySelectorAll(".time-btn"));
+        const btnIndex = buttons.indexOf(btn);
+        const key = `${periodNum}_${btnIndex}`;
+        
+        // Update time data with goalie assignment
+        const teamId = App.helpers.getCurrentTeamId();
+        let timeDataWithPlayers = App.helpers.safeJSONParse(`seasonMapTimeDataWithPlayers_${teamId}`, {});
+        
+        if (!timeDataWithPlayers[key]) {
+          timeDataWithPlayers[key] = {};
+        }
+        
+        // Increment the count for this goalie
+        if (!timeDataWithPlayers[key][selectedGoalie]) {
+          timeDataWithPlayers[key][selectedGoalie] = 0;
+        }
+        timeDataWithPlayers[key][selectedGoalie] += 1;
+        
+        // Save to localStorage
+        AppStorage.setItem(`seasonMapTimeDataWithPlayers_${teamId}`, JSON.stringify(timeDataWithPlayers));
+        
+        // Update button display
+        const total = Object.values(timeDataWithPlayers[key])
+          .reduce((sum, val) => sum + Number(val), 0);
+        btn.textContent = total;
+        
+        console.log(`Conceded goal assigned to ${selectedGoalie} at ${key}`);
+      }
+    });
+  },
+  
+  // Show goalie selection modal
+  showGoalieSelectionModal(goalies, callback) {
+    const modal = document.getElementById("goalieSelectionModal");
+    const list = document.getElementById("goalieSelectionList");
+    const confirmBtn = document.getElementById("goalieSelectionConfirm");
+    const cancelBtn = document.getElementById("goalieSelectionCancel");
+    
+    if (!modal || !list || !confirmBtn || !cancelBtn) {
+      console.error("Goalie selection modal elements not found");
+      return;
+    }
+    
+    // Clear previous content
+    list.innerHTML = "";
+    
+    // Use event delegation instead of adding listeners to each label
+    const handleListClick = (e) => {
+      const label = e.target.closest('.goalie-option');
+      if (label) {
+        const radio = label.querySelector('input[type="radio"]');
+        if (radio) {
+          radio.checked = true;
+          confirmBtn.disabled = false;
+        }
+      }
+    };
+    
+    // Populate with goalies
+    goalies.forEach(goalieName => {
+      const label = document.createElement("label");
+      label.className = "goalie-option";
+      
+      const radio = document.createElement("input");
+      radio.type = "radio";
+      radio.name = "goalieSelect";
+      radio.value = goalieName;
+      
+      const span = document.createElement("span");
+      span.textContent = goalieName;
+      
+      label.appendChild(radio);
+      label.appendChild(span);
+      list.appendChild(label);
+    });
+    
+    // Add event listener to list container
+    list.addEventListener("click", handleListClick);
+    
+    // Disable confirm button initially
+    confirmBtn.disabled = true;
+    
+    // Show modal
+    modal.style.display = "flex";
+    
+    // Handle confirm
+    const handleConfirm = () => {
+      const selected = list.querySelector('input[name="goalieSelect"]:checked');
+      if (selected) {
+        callback(selected.value);
+      }
+      cleanup();
+    };
+    
+    // Handle cancel
+    const handleCancel = () => {
+      callback(null);
+      cleanup();
+    };
+    
+    // Handle background click
+    const handleModalClick = (e) => {
+      if (e.target === modal) {
+        handleCancel();
+      }
+    };
+    
+    // Cleanup function
+    const cleanup = () => {
+      modal.style.display = "none";
+      confirmBtn.removeEventListener("click", handleConfirm);
+      cancelBtn.removeEventListener("click", handleCancel);
+      modal.removeEventListener("click", handleModalClick);
+      list.removeEventListener("click", handleListClick);
+    };
+    
+    // Attach event listeners
+    confirmBtn.addEventListener("click", handleConfirm);
+    cancelBtn.addEventListener("click", handleCancel);
+    modal.addEventListener("click", handleModalClick);
+  },
+  
+  // Goal-Area-Statistik (Zonen im Tor)
+  renderGoalAreaStats() {
+    const seasonMapRoot = document.getElementById("seasonMapPage");
+    if (!seasonMapRoot) return;
+    
+    const goalBoxIds = ["seasonGoalGreenBox", "seasonGoalRedBox"];
+    goalBoxIds.forEach(id => {
+      const box = document.getElementById(id);
+      if (!box) return;
+      
+      box.querySelectorAll(".goal-area-label").forEach(el => el.remove());
+      
+      // Filter markers based on box type
+      const isRedGoal = (id === "seasonGoalRedBox");
+      const markers = Array.from(box.querySelectorAll(".marker-dot")).filter(m => {
+        // Skip hidden markers
+        if (m.style.display === 'none') return false;
+        
+        // For red goal box (conceded), use goalie filter
+        if (isRedGoal) {
+          const teamId = App.helpers.getCurrentTeamId();
+          const savedGoalie = AppStorage.getItem(`seasonMapActiveGoalie_${teamId}`);
+          if (savedGoalie && savedGoalie !== "") {
+            // Specific goalie selected - only show their markers
+            return m.dataset.player === savedGoalie;
+          }
+          // "All Goalies" - show all markers
+          return true;
+        }
+        
+        // For green goal box (scored), use player filter
+        if (this.playerFilter) {
+          return m.dataset.player === this.playerFilter;
+        }
+        return true;
+      });
+      
+      // Deduplicate markers before counting
+      // Note: This deduplicates at the DOM level after rendering, using pixel coordinates
+      // Different from export deduplication which operates on data before rendering
+      const seen = new Set();
+      const uniq = markers.filter(m => {
+        const left = Math.round(parseFloat(m.style.left) || 0);
+        const top  = Math.round(parseFloat(m.style.top)  || 0);
+        // Use null character as separator to avoid conflicts with player names containing colons
+        const key = `${left}\0${top}\0${m.dataset.player || ''}\0${box.id}`;
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      });
+      
+      const total = uniq.length;
+      
+      const counts = { tl: 0, tr: 0, bl: 0, bm: 0, br: 0 };
+      uniq.forEach(m => {
+        const left = parseFloat(m.style.left) || 0;
+        const top = parseFloat(m.style.top) || 0;
+        if (top < 50) {
+          if (left < 50) counts.tl++;
+          else counts.tr++;
+        } else {
+          if (left < 33.3333) counts.bl++;
+          else if (left < 66.6667) counts.bm++;
+          else counts.br++;
+        }
+      });
+      
+      const areas = [
+        { key: "tl", x: 25, y: 22 },
+        { key: "tr", x: 75, y: 22 },
+        { key: "bl", x: 16, y: 75 },
+        { key: "bm", x: 50, y: 75 },
+        { key: "br", x: 84, y: 75 }
+      ];
+      
+      areas.forEach(a => {
+        const cnt = counts[a.key] || 0;
+        const pct = total ? Math.round((cnt / total) * 100) : 0;
+        const div = document.createElement("div");
+        div.className = "goal-area-label";
+        div.style.cssText = `
+          position: absolute;
+          left: ${a.x}%;
+          top: ${a.y}%;
+          transform: translate(-50%,-50%);
+          pointer-events: none;
+          font-weight: 800;
+          opacity: 0.45;
+          font-size: 36px;
+          color: #000000;
+          text-shadow: 0 1px 2px rgba(255,255,255,0.06);
+          line-height: 1;
+          user-select: none;
+          white-space: nowrap;
+        `;
+        div.textContent = `${cnt} (${pct}%)`;
+        box.appendChild(div);
+      });
+    });
+  },
+  
+  // Reset NUR für Season Map Anzeige
+  reset() {
+    if (!confirm("⚠️ Season Map zurücksetzen (Marker + Timeboxen)?")) return;
+    
+    // Marker entfernen
+    document.querySelectorAll("#seasonMapPage .marker-dot").forEach(d => d.remove());
+    
+    // Time Buttons zurücksetzen
+    document.querySelectorAll("#seasonMapPage .time-btn").forEach(btn => btn.textContent = "0");
+    
+    // LocalStorage Daten löschen
+    const teamId = App.helpers.getCurrentTeamId();
+    AppStorage.removeItem(`seasonMapMarkers_${teamId}`);
+    AppStorage.removeItem(`seasonMapTimeData_${teamId}`);
+    AppStorage.removeItem(`seasonMapTimeDataWithPlayers_${teamId}`);
+    
+    // Reset initialization flag to allow re-initialization
+    this.timeTrackingInitialized = false;
+    
+    // Momentum Container leeren (korrekter ID: seasonMapMomentum)
+    const momentumContainer = document.getElementById("seasonMapMomentum");
+    if (momentumContainer) {
+      momentumContainer.innerHTML = "";
+    }
+    
+    // Momentum-Grafik neu rendern mit leeren Daten
+    // Timeout benötigt, damit localStorage-Änderungen vor dem Rendering propagiert werden
+    if (typeof window.renderSeasonMomentumGraphic === 'function') {
+      setTimeout(() => {
+        window.renderSeasonMomentumGraphic();
+      }, 50);
+    }
+    
+    // Goal Area Labels zurücksetzen (falls vorhanden)
+    document.querySelectorAll("#seasonMapPage .goal-area-label").forEach(label => {
+      label.textContent = "0";
+    });
+    
+    console.log('[Season Map] Reset completed - Momentum container cleared and re-rendered');
+    
+    alert("Season Map reset.");
+  },
+  
+  exportAsImage() {
+    const seasonMapPage = document.getElementById("seasonMapPage");
+    
+    if (!seasonMapPage) {
+      console.error("Season Map page not found");
+      return;
+    }
+    
+    if (typeof html2canvas === 'undefined') {
+      console.error("html2canvas is not loaded");
+      alert("Export library not loaded. Please refresh the page and try again.");
+      return;
+    }
+    
+    console.log("Generating Season Map image...");
+    
+    // Create export container
+    const exportContainer = document.createElement('div');
+    exportContainer.style.backgroundColor = '#ffffff';
+    exportContainer.style.padding = '16px';
+    
+    // === NEU: Header mit Filter-Informationen ===
+    const playerFilter = this.playerFilter || "All Players";
+    const goalieSelect = document.getElementById("seasonMapGoalieFilter");
+    const goalieFilter = (goalieSelect && goalieSelect.value) ? goalieSelect.value : "All Goalies";
+    
+    const header = document.createElement('div');
+    header.style.cssText = `
+      padding: 12px 16px;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      font-size: 18px;
+      font-weight: 700;
+      color: #000000;
+      background: #ffffff;
+      margin-bottom: 16px;
+      text-align: center;
+      border-bottom: 2px solid #333;
+    `;
+    header.textContent = `Player: ${playerFilter} | Goalie: ${goalieFilter}`;
+    exportContainer.appendChild(header);
+    
+    // Clone the layout
+    const layout = seasonMapPage.querySelector('.torbild-layout');
+    if (layout) {
+      const layoutClone = layout.cloneNode(true);
+      
+      // NEW: Remove timebox from export (Momentum graphic shows same data)
+      const timeBox = layoutClone.querySelector('.time-tracking-box') || layoutClone.querySelector('#seasonMapTimeTrackingBox');
+      if (timeBox) {
+        timeBox.remove();
+      }
+      
+      exportContainer.appendChild(layoutClone);
+      
+      // Goal-Bilder korrekt stylen
+      layoutClone.querySelectorAll('.goal-img-box img').forEach(img => {
+        img.style.objectFit = 'contain';
+        img.style.width = '100%';
+        img.style.height = '100%';
+      });
+      
+      // Goal-Boxen Mindesthöhe setzen
+      layoutClone.querySelectorAll('.goal-img-box').forEach(box => {
+        box.style.minHeight = '180px';
+      });
+      
+      // Goal-Column auf Grid umstellen für bessere Verteilung
+      const goalColumn = layoutClone.querySelector('.goal-column');
+      if (goalColumn) {
+        goalColumn.style.display = 'grid';
+        goalColumn.style.gridTemplateRows = '1fr 1fr 0.75fr';
+        goalColumn.style.gap = '15px';
+      }
+      
+      // NEW: Copy heatmap canvas pixel data to the cloned layout
+      // The cloned canvas has no pixel data, so we must copy it from the original
+      const clonedFieldBox = layoutClone.querySelector('#seasonFieldBox') || layoutClone.querySelector('.field-box');
+      if (clonedFieldBox) {
+        // Remove the empty cloned canvas
+        const emptyCanvas = clonedFieldBox.querySelector('.heatmap-canvas');
+        if (emptyCanvas) emptyCanvas.remove();
+        
+        // Get the original canvas with the rendered heatmap data
+        const originalCanvas = document.querySelector('#seasonFieldBox .heatmap-canvas');
+        if (originalCanvas) {
+          // Create a copy of the canvas with pixel data
+          const canvasCopy = document.createElement('canvas');
+          canvasCopy.className = 'heatmap-canvas';
+          canvasCopy.width = originalCanvas.width;
+          canvasCopy.height = originalCanvas.height;
+          
+          // Copy the styles
+          canvasCopy.style.cssText = originalCanvas.style.cssText;
+          
+          // Copy the pixel data
+          const ctx = canvasCopy.getContext('2d');
+          ctx.drawImage(originalCanvas, 0, 0);
+          
+          // Add the canvas to the cloned field box
+          clonedFieldBox.appendChild(canvasCopy);
+        }
+      }
+    }
+    
+    // Clone the momentum container
+    const momentumContainer = seasonMapPage.querySelector('#seasonMapMomentum');
+    if (momentumContainer) {
+      const momentumClone = momentumContainer.cloneNode(true);
+      exportContainer.appendChild(momentumClone);
+    }
+    
+    // Temporarily add to page
+    exportContainer.style.position = 'absolute';
+    exportContainer.style.left = '-9999px';
+    document.body.appendChild(exportContainer);
+    
+    // === NEU: Bildboxen weiß hinterlegen für Export ===
+    const boxes = exportContainer.querySelectorAll('.img-box, .goal-img-box, .field-box');
+    boxes.forEach(box => {
+      box.style.backgroundColor = '#ffffff';
+      box.style.border = 'none';
+      box.style.boxShadow = 'none';
+    });
+    
+    // Ensure goal images maintain aspect ratio in export
+    const goalImages = exportContainer.querySelectorAll('.goal-img-box img');
+    goalImages.forEach(img => {
+      img.style.width = '100%';
+      img.style.height = '100%';
+      img.style.objectFit = 'contain';
+    });
+    
+    // Ensure goal boxes have sufficient height
+    const goalBoxes = exportContainer.querySelectorAll('.goal-img-box');
+    goalBoxes.forEach(box => {
+      box.style.minHeight = '150px';
+      box.style.display = 'flex';
+      box.style.alignItems = 'center';
+      box.style.justifyContent = 'center';
+    });
+    
+    const cleanupTempContainer = () => {
+      if (document.body.contains(exportContainer)) {
+        document.body.removeChild(exportContainer);
+      }
+    };
+    
+    html2canvas(exportContainer, {
+      scale: 2,
+      backgroundColor: '#ffffff',
+      logging: false,
+      useCORS: true,
+      allowTaint: true
+    }).then(canvas => {
+      cleanupTempContainer();
+      
+      canvas.toBlob(blob => {
+        if (!blob) {
+          alert("Error: Failed to create image blob");
+          return;
+        }
+        
+        try {
+          const date = App.helpers.getCurrentDateString();
+          // Filename includes filter info - sanitize player name for filename
+          const filterSuffix = playerFilter !== "All Players" 
+            ? `_${playerFilter.replace(/[^a-zA-Z0-9]/g, '_')}` 
+            : '';
+          const filename = `season_map_${date}${filterSuffix}.png`;
+          
+          const link = document.createElement('a');
+          link.href = URL.createObjectURL(blob);
+          link.download = filename;
+          link.style.display = 'none';
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+          URL.revokeObjectURL(link.href);
+          
+          console.log("Season Map export completed:", filename);
+        } catch (error) {
+          console.error("Error creating download:", error);
+          alert("Error creating download: " + error.message);
+        }
+      }, 'image/png');
+    }).catch(error => {
+      cleanupTempContainer();
+      console.error("Error capturing season map:", error);
+      alert("Error capturing season map: " + error.message);
+    });
+  }
+};
