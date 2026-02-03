@@ -99,8 +99,8 @@ App.playerSelection = {
     
     const players = [];
     
-    // Add 5 goalie slots at the top
-    for (let i = 0; i < 5; i++) {
+    // Add 3 goalie slots at the top
+    for (let i = 0; i < 3; i++) {
       const saved = savedPlayers[i];
       players.push({
         number: saved?.number || "",
@@ -111,9 +111,9 @@ App.playerSelection = {
       });
     }
     
-    // 40 regular player slots after 5 goalie slots
-    for (let i = 0; i < 40; i++) {
-      const saved = savedPlayers[5 + i];
+    // 25 regular player slots after 3 goalie slots
+    for (let i = 0; i < 25; i++) {
+      const saved = savedPlayers[3 + i];
       
       players.push({
         number: saved?.number || "",
