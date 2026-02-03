@@ -306,14 +306,12 @@ App.teamSelection = (function() {
         de: `💡 Tipp: Alle Seiteninfos sind über Klick auf den jeweiligen Seitentitel abrufbar.
 
 Ablauf (Spiel)
-
-1. Team Selection: Team wählen oder bearbeiten 
-2. Player Selection: Spieler erfassen/aktivieren; bei Bedarf direkt zu Line Up oder Game Center. 
+1. Team Selection: Team wählen oder bearbeiten
+2. Player Selection: Spieler erfassen/aktivieren; bei Bedarf direkt zu Line Up oder Game Center.
 3. Line Up: Aufstellung setzen (Manuell, Balanced + Power vorgegeben durch KI/AI)
 4. Game Center: Spieldaten erfassen
-5. Goal Map: Punkte im Feld/Tor/Time setzen, zurück zu Game Center. 
-6. Nach Spiel: Goal Value je Gegner einschätzen (Schwierigkeit). 
-7. Download: Game → Season und Season Map exportieren, um die Saison auszuwerten.
+5. Goal Map: Punkte im Feld/Tor/Time setzen, zurück zu Game Center.
+6. Nach Spiel: Goal Value je Gegner einschätzen (Schwierigkeit).
 
 ________________________________________
 
@@ -349,8 +347,6 @@ Statistikzellen (z. B. Goals, Shot):
 • Bei +1 auf Goals/Shot startet je nach Ereignis der Goal- bzw. Shot-Workflow in der Goal Map.
 
 Gegner-Schüsse: In der Shot-Totals-Zelle (unten) per Klick/Doppelklick zählen.
-
-Download: Spieldaten werden als Excel heruntergeladen.
 
 Export Season: Spieldaten werden zu Saisonstatistiken addiert. Dabei werden Sie gebeten, einen Goal Value Wert einzugeben. Bsp: 1 Stern = sehr schwacher Gegner, einfach Tore zu erzielen, Gegner am untersten Tabellen Ende, Chance auf viele Schüsse. 10 Sterne = Sehr starker Gegner, Tabellen Leader, Schwer Chancen zu bekommen, eher weniger Schüsse zugelassen.
 
@@ -424,14 +420,12 @@ Reset (irreversibel)
         en: `💡 Tip: All page infos are accessible by clicking on the page title.
 
 Workflow (Game)
-
 1. Team Selection: Choose or edit team.
 2. Player Selection: Add/activate players; go directly to Line Up or Game Center if needed.
 3. Line Up: Set lineup (Manual, Balanced + Power preset by AI)
 4. Game Center: Record game data
 5. Goal Map: Set points in field/goal/time, return to Game Center.
 6. After Game: Assess Goal Value per opponent (difficulty).
-7. Download: Export Game → Season and Season Map to analyze the season.
 
 ________________________________________
 
@@ -467,8 +461,6 @@ Stat Cells (e.g., Goals, Shot):
 • +1 on Goals/Shot triggers corresponding Goal or Shot workflow in Goal Map.
 
 Opponent Shots: Count in Shot-Totals cell (bottom) via click/double-click.
-
-Download: Game data is downloaded as Excel.
 
 Export Season: Game data is added to season statistics.
 
@@ -544,14 +536,12 @@ Reset (irreversible)
         ru: `💡 Совет: Все информации о страницах доступны по клику на заголовок страницы.
 
 Порядок действий (Игра)
-
 1. Team Selection: Выбрать или редактировать команду.
 2. Player Selection: Добавить/активировать игроков; при необходимости перейти в Line Up или Game Center.
 3. Line Up: Установить состав (Ручной, Balanced + Power предустановлены ИИ)
 4. Game Center: Записать игровые данные
 5. Goal Map: Установить точки на поле/воротах/времени, вернуться в Game Center.
 6. После игры: Оценить Goal Value по соперникам (сложность).
-7. Download: Экспортировать Game → Season и Season Map для анализа сезона.
 
 ________________________________________
 
@@ -587,8 +577,6 @@ Game Center
 • +1 на Goals/Shot запускает соответствующий Goal- или Shot-процесс в Goal Map.
 
 Броски соперника: Считать в ячейке Shot-Totals (внизу) кликом/двойным кликом.
-
-Download: Игровые данные загружаются как Excel.
 
 Export Season: Игровые данные добавляются к сезонной статистике.
 
@@ -664,14 +652,12 @@ Reset (необратимо)
         sv: `💡 Tips: All sidinformation är tillgänglig genom att klicka på sidtiteln.
 
 Arbetsflöde (Match)
-
 1. Team Selection: Välj eller redigera lag.
 2. Player Selection: Lägg till/aktivera spelare; gå direkt till Line Up eller Game Center vid behov.
 3. Line Up: Sätt uppställning (Manuell, Balanced + Power förinställt av AI)
 4. Game Center: Registrera matchdata
 5. Goal Map: Sätt punkter i fält/mål/tid, återgå till Game Center.
 6. Efter match: Bedöm Goal Value per motståndare (svårighetsgrad).
-7. Download: Exportera Game → Season och Season Map för att analysera säsongen.
 
 ________________________________________
 
@@ -707,8 +693,6 @@ Statistikceller (t.ex. Goals, Shot):
 • +1 på Goals/Shot startar motsvarande Goal- eller Shot-arbetsflöde i Goal Map.
 
 Motståndarskott: Räkna i Shot-Totals-cellen (nederst) via klick/dubbelklick.
-
-Download: Matchdata laddas ner som Excel.
 
 Export Season: Matchdata läggs till säsongsstatistik.
 
@@ -784,14 +768,12 @@ Reset (oåterkallelig)
         fi: `💡 Vinkki: Kaikki sivutiedot ovat saatavilla napsauttamalla sivun otsikkoa.
 
 Työnkulku (Peli)
-
 1. Team Selection: Valitse tai muokkaa joukkuetta.
 2. Player Selection: Lisää/aktivoi pelaajia; siirry tarvittaessa suoraan Line Up tai Game Center.
 3. Line Up: Aseta kokoonpano (Manuaalinen, Balanced + Power esiasetettu tekoälyllä)
 4. Game Center: Tallenna pelitiedot
 5. Goal Map: Aseta pisteet kentälle/maaliin/aikaan, palaa Game Centeriin.
 6. Pelin jälkeen: Arvioi Goal Value vastustajittain (vaikeusaste).
-7. Download: Vie Game → Season ja Season Map kauden analysointiin.
 
 ________________________________________
 
@@ -827,8 +809,6 @@ Tilastosolut (esim. Goals, Shot):
 • +1 Goals/Shot käynnistää vastaavan Goal- tai Shot-työnkulun Goal Mapissa.
 
 Vastustajan laukaukset: Laske Shot-Totals-solussa (alhaalla) klikkauksella/tuplaklikkauksella.
-
-Download: Pelitiedot ladataan Excelinä.
 
 Export Season: Pelitiedot lisätään kauden tilastoihin.
 
@@ -904,14 +884,12 @@ Reset (peruuttamaton)
         fr: `💡 Astuce: Toutes les infos des pages sont accessibles en cliquant sur le titre.
 
 Ablauf (Jeu)
-
 1. Team Selection: Choisir ou modifier l'équipe.
 2. Player Selection: Ajouter/activer des joueurs; passer directement à Line Up ou Game Center si nécessaire.
 3. Line Up: Définir la formation (Manuel, Balanced + Power prédéfini par IA)
 4. Game Center: Enregistrer les données du match
 5. Goal Map: Placer des points sur le terrain/but/temps, retourner à Game Center.
 6. Après le match: Évaluer Goal Value par adversaire (difficulté).
-7. Download: Exporter Game → Season et Season Map pour analyser la saison.
 
 ________________________________________
 
@@ -947,8 +925,6 @@ Cellules de statistiques (par ex. Goals, Shot):
 • +1 sur Goals/Shot déclenche le flux de travail Goal ou Shot correspondant dans Goal Map.
 
 Tirs adverses: Compter dans la cellule Shot-Totals (en bas) via clic/double-clic.
-
-Download: Les données du match sont téléchargées en tant qu'Excel.
 
 Export Season: Les données du match sont ajoutées aux statistiques de la saison.
 
