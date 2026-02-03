@@ -216,9 +216,8 @@ Spielerzeile:
 Statistikzellen (z. B. Goals, Shot):
 • Klick: +1, Doppelklick: –1.
 • Bei +1 auf Goals/Shot startet je nach Ereignis der Goal- bzw. Shot-Workflow in der Goal Map.
-• Gegner-Schüsse: In der Shot-Totals-Zelle (unten) per Klick/Doppelklick zählen.
 
-Download: Spieldaten werden als Excel heruntergeladen.
+Gegner-Schüsse: In der Shot-Totals-Zelle (unten) per Klick/Doppelklick zählen.
 
 Export Season: Spieldaten werden zu Saisonstatistiken addiert. Dabei werden Sie gebeten, einen Goal Value Wert einzugeben. Bsp: 1 Stern = sehr schwacher Gegner, einfach Tore zu erzielen, Gegner am untersten Tabellen Ende, Chance auf viele Schüsse. 10 Sterne = Sehr starker Gegner, Tabellen Leader, Schwer Chancen zu bekommen, eher weniger Schüsse zugelassen.
 
@@ -234,9 +233,8 @@ Player Row:
 Statistic Cells (e.g. Goals, Shot):
 • Click: +1, Double-click: –1.
 • When +1 on Goals/Shot, the Goal or Shot workflow starts in the Goal Map depending on the event.
-• Opponent shots: Count in the Shot-Totals cell (bottom) via click/double-click.
 
-Download: Game data is downloaded as Excel.
+Opponent shots: Count in the Shot-Totals cell (bottom) via click/double-click.
 
 Export Season: Game data is added to season statistics. You will be asked to enter a Goal Value. Example: 1 star = very weak opponent, easy to score goals, opponent at the bottom of the table, chance for many shots. 10 stars = Very strong opponent, table leader, hard to get chances, fewer shots allowed.
 
@@ -252,9 +250,8 @@ With button (☀️/🌙) you can switch between Light and Dark Mode.`,
 Ячейки статистики (напр. Goals, Shot):
 • Клик: +1, Двойной клик: –1.
 • При +1 на Goals/Shot запускается соответствующий процесс в Goal Map.
-• Броски соперника: Считать в ячейке Shot-Totals (внизу) кликом/двойным кликом.
 
-Download: Данные игры скачиваются в Excel.
+Броски соперника: Считать в ячейке Shot-Totals (внизу) кликом/двойным кликом.
 
 Export Season: Данные игры добавляются к сезонной статистике. Вас попросят ввести Goal Value. Пример: 1 звезда = очень слабый соперник, 10 звёзд = очень сильный соперник.
 
@@ -270,9 +267,8 @@ Spelarrad:
 Statistikceller (t.ex. Goals, Shot):
 • Klick: +1, Dubbelklick: –1.
 • Vid +1 på Goals/Shot startar Goal- eller Shot-arbetsflödet i Goal Map.
-• Motståndarskott: Räkna i Shot-Totals-cellen (nere) via klick/dubbelklick.
 
-Download: Speldata laddas ner som Excel.
+Motståndarskott: Räkna i Shot-Totals-cellen (nere) via klick/dubbelklick.
 
 Export Season: Speldata läggs till säsongsstatistik. Du kommer att bli ombedd att ange ett Goal Value. Exempel: 1 stjärna = mycket svag motståndare, 10 stjärnor = mycket stark motståndare.
 
@@ -288,9 +284,8 @@ Pelaajarivi:
 Tilastosolut (esim. Goals, Shot):
 • Klikkaus: +1, Tuplaklikkaus: –1.
 • +1 Goals/Shot käynnistää Goal- tai Shot-työnkulun Goal Mapissa.
-• Vastustajan laukaukset: Laske Shot-Totals-solussa (alhaalla) klikkauksella/tuplaklikkauksella.
 
-Download: Pelitiedot ladataan Excelinä.
+Vastustajan laukaukset: Laske Shot-Totals-solussa (alhaalla) klikkauksella/tuplaklikkauksella.
 
 Export Season: Pelitiedot lisätään kauden tilastoihin. Sinua pyydetään syöttämään Goal Value. Esimerkki: 1 tähti = erittäin heikko vastustaja, 10 tähteä = erittäin vahva vastustaja.
 
@@ -306,9 +301,8 @@ Ligne du joueur:
 Cellules statistiques (p.ex. Goals, Shot):
 • Clic: +1, Double-clic: –1.
 • Lors de +1 sur Goals/Shot, le workflow Goal ou Shot démarre dans Goal Map.
-• Tirs adverses: Compter dans la cellule Shot-Totals (en bas) via clic/double-clic.
 
-Download: Les données du match sont téléchargées en Excel.
+Tirs adverses: Compter dans la cellule Shot-Totals (en bas) via clic/double-clic.
 
 Export Season: Les données du match sont ajoutées aux statistiques de saison. On vous demandera d'entrer une valeur Goal Value. Ex: 1 étoile = adversaire très faible, 10 étoiles = adversaire très fort.
 
