@@ -11,8 +11,6 @@
   --cell-zero-color: #000000;
   --btn-top-bg: #c8fbc8;
   --btn-bottom-bg: #ffe7e7;
-  --timer-active-color: #005c2f;
-  --timer-left-bg: #2A2F36;
   --sticky-header-height: 56px;
   --ice-top: #00c06f;
   --ice-bottom: #ff4c4c;
@@ -55,7 +53,6 @@
   --cell-pos-color: #00ff80;
   --cell-neg-color: #ff4c4c;
   --cell-zero-color: #ffffff;
-  --timer-left-bg: #2A2F36;
   
   /* NEU: Hintergrund für Bilderboxen (Dark Mode: Dunkel) */
   --img-box-bg: #1e1e1e;
@@ -213,7 +210,6 @@ h1 {
   padding: clamp(6px, 0.9vw, 8px) clamp(8px, 1.4vw, 14px) !important;
   min-height: 40px !important;
 }
-#statsPage #timerBtn { font-variant-numeric: tabular-nums; }
 
 /* Theme Toggle Button - Only on Game Center page */
 #themeToggleBtn {
@@ -276,21 +272,6 @@ h1 {
 }
 .top-btn:hover,
 .import-csv-btn:hover { background: #3b3b3b; }
-
-.top-btn.timer-left { background: var(--timer-left-bg); }
-.timer {
-  font-size: 1.25rem;
-  font-weight: 700;
-  padding: 10px 16px;
-  transition: background-color 0.25s;
-  height: 40px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-}
-.timer.running { background: var(--cell-pos-color); }
-.timer.stopped { background: #b00020; }
-.timer.reset { background: var(--timer-left-bg); }
 
 .top-btn.export-csv { background: #2FB7C8; color: #fff; }
 .top-btn.export-csv:hover { filter: brightness(1.1); }

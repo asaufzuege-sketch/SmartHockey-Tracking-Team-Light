@@ -74,7 +74,6 @@ function initializeApp() {
   });
   
   // 5. Alle anderen Module initialisieren
-  App.timer.init();
   App.csvHandler.init();
   App.playerSelection.init();
   App.statsTable.init();
@@ -197,7 +196,6 @@ function initializeApp() {
         App.teamSelection.saveTeams();
       }
       App.saveActiveTimersState(); // Timer State speichern
-      AppStorage.setItem("timerSeconds", String(App.timer.seconds));
       if (App.goalValue) {
         const teamId = App.helpers.getCurrentTeamId();
         AppStorage.setItem(`goalValueOpponents_${teamId}`, JSON.stringify(App.goalValue.getOpponents()));
