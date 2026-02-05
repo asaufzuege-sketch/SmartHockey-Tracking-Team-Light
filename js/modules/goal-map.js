@@ -1599,7 +1599,7 @@ App.goalMap = {
         const key = `${periodNum}_${idx}`;
         const playerData = timeDataWithPlayers[key] || {};
         
-        // Sum up time for goalies
+        // Sum up time for filtered goalies (either selected goalie(s) or all currently active goalies)
         let displayVal = 0;
         goalieNamesToSum.forEach(goalieName => {
           displayVal += Number(playerData[goalieName]) || 0;
