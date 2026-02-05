@@ -867,7 +867,7 @@ App.seasonMap = {
   // Handle click on conceded goal time button (red zone)
   handleConcededGoalClick(btn, period) {
     // Get current goalies from selectedPlayers
-    const goalies = (App.data.selectedPlayers || [])
+    const goalies = this.getPlayersFromStorage()
       .filter(p => p && p.position === "G")
       .map(g => g.name);
     
