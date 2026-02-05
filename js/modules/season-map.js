@@ -30,6 +30,30 @@ App.seasonMap = {
     return this.isMobileView() ? this.HEATMAP_RADIUS_FACTOR_MOBILE : this.HEATMAP_RADIUS_FACTOR;
   },
   
+  // Helper: Get players from playerSelectionData storage  
+  getPlayersFromStorage() {
+    const teamId = App.helpers.getCurrentTeamId();
+    const savedPlayersKey = `playerSelectionData_${teamId}`;
+    let allPlayers = [];
+    try {
+      allPlayers = JSON.parse(AppStorage.getItem(savedPlayersKey) || "[]");
+    } catch (e) {
+      allPlayers = [];
+    }
+    const activePlayers = allPlayers.filter(p => p.active && p.name && p.name.trim() !== "");
+    
+    if (activePlayers.length === 0 && App.data.selectedPlayers && App.data.selectedPlayers.length > 0) {
+      return App.data.selectedPlayers.map(p => ({
+        number: p.num || "",
+        name: p.name,
+        position: p.position || "",
+        active: true
+      }));
+    }
+    
+    return activePlayers;
+  },
+  
   init() {
     this.timeTrackingBox = document.getElementById("seasonMapTimeTrackingBox");
     this.playerFilter = null;
@@ -81,7 +105,7 @@ App.seasonMap = {
     
     filterSelect.innerHTML = '<option value="">All Players</option>';
     // Nur Spieler ohne Goalie-Position (G) in die Liste aufnehmen
-    (App.data.selectedPlayers || [])
+    this.getPlayersFromStorage()
       .filter(player => player.position !== "G")
       .forEach(player => {
         const option = document.createElement("option");
@@ -146,16 +170,17 @@ App.seasonMap = {
         }
       }
       
-      // Filter to only include players that are goalies in current selection
-      const currentGoalies = (App.data.selectedPlayers || [])
-        .filter(p => p.position === "G")
-        .map(g => g.name);
+      // Zeige ALLE Goalies die Season-Daten haben - unabhängig von aktueller Player Selection
+      // Diese bleiben bis Reset erhalten, auch wenn der Goalie gelöscht/überschrieben wird
+      let goaliesToShow = Array.from(allGoalies);
       
-      // Use intersection: players that are in allGoalies AND are currently marked as goalies
-      const seasonGoalies = Array.from(allGoalies).filter(name => currentGoalies.includes(name));
-      
-      // If no goalies found in season data, use currently selected goalies as fallback
-      const goaliesToShow = seasonGoalies.length > 0 ? seasonGoalies : currentGoalies;
+      // Fallback: Wenn keine Season-Daten existieren, zeige aktuelle aktive Goalies
+      if (goaliesToShow.length === 0) {
+        const currentGoalies = this.getPlayersFromStorage()
+          .filter(p => p.position === "G")
+          .map(g => g.name);
+        goaliesToShow = currentGoalies;
+      }
       
       goalieFilterSelect.innerHTML = '<option value="">All Goalies</option>';
       goaliesToShow.forEach(goalieName => {
@@ -842,7 +867,7 @@ App.seasonMap = {
   // Handle click on conceded goal time button (red zone)
   handleConcededGoalClick(btn, period) {
     // Get current goalies from selectedPlayers
-    const goalies = (App.data.selectedPlayers || [])
+    const goalies = this.getPlayersFromStorage()
       .filter(p => p && p.position === "G")
       .map(g => g.name);
     
