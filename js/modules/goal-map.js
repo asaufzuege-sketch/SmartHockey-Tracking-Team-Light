@@ -12,6 +12,32 @@ App.goalMap = {
   AUTO_NAVIGATION_DELAY_MS: 300, // Delay before auto-navigating after workflow completion
   MARKER_POSITION_TOLERANCE: 0.01, // Tolerance for marker position comparison (absolute percentage points)
   
+  // Helper: Get players from playerSelectionData storage
+  getPlayersFromStorage() {
+    const teamId = App.helpers.getCurrentTeamId();
+    const savedPlayersKey = `playerSelectionData_${teamId}`;
+    let allPlayers = [];
+    try {
+      allPlayers = JSON.parse(AppStorage.getItem(savedPlayersKey) || "[]");
+    } catch (e) {
+      allPlayers = [];
+    }
+    // Nur aktive Spieler mit Namen zurückgeben
+    const activePlayers = allPlayers.filter(p => p.active && p.name && p.name.trim() !== "");
+    
+    // Fallback auf App.data.selectedPlayers wenn keine Daten
+    if (activePlayers.length === 0 && App.data.selectedPlayers && App.data.selectedPlayers.length > 0) {
+      return App.data.selectedPlayers.map(p => ({
+        number: p.num || "",
+        name: p.name,
+        position: p.position || "",
+        active: true
+      }));
+    }
+    
+    return activePlayers;
+  },
+  
   init() {
     this.timeTrackingBox = document.getElementById("timeTrackingBox");
     
@@ -56,7 +82,7 @@ App.goalMap = {
       this.filterByGoalies([savedGoalie]);
     } else {
       // "All Goalies" or no goalie saved - show all red zone markers
-      const allGoalies = (App.data.selectedPlayers || []).filter(p => p.position === "G");
+      const allGoalies = this.getPlayersFromStorage().filter(p => p.position === "G");
       const goalieNames = allGoalies.map(g => g.name);
       this.filterByGoalies(goalieNames);
     }
@@ -873,7 +899,7 @@ App.goalMap = {
       const goalieFilterSelect = document.getElementById("goalMapGoalieFilter");
       if (goalieFilterSelect) {
         // Check if saved goalie still exists as option in dropdown
-        const goalies = (App.data.selectedPlayers || []).filter(p => p.position === "G");
+        const goalies = this.getPlayersFromStorage().filter(p => p.position === "G");
         const goalieNames = goalies.map(g => g.name);
         
         if (goalieNames.includes(savedGoalie)) {
@@ -1008,7 +1034,7 @@ App.goalMap = {
     // Apply goalie filter for red zone
     const savedGoalie = AppStorage.getItem(`goalMapActiveGoalie_${teamId}`);
     if (savedGoalie) {
-      const goalies = (App.data.selectedPlayers || []).filter(p => p.position === "G");
+      const goalies = this.getPlayersFromStorage().filter(p => p.position === "G");
       const goalieNames = goalies.map(g => g.name);
       if (goalieNames.includes(savedGoalie)) {
         this.filterByGoalies([savedGoalie]);
@@ -1018,7 +1044,7 @@ App.goalMap = {
       }
     } else {
       // No goalie filter, show all red zone markers
-      const goalies = (App.data.selectedPlayers || []).filter(p => p.position === "G");
+      const goalies = this.getPlayersFromStorage().filter(p => p.position === "G");
       const goalieNames = goalies.map(g => g.name);
       this.filterByGoalies(goalieNames);
     }
@@ -1084,7 +1110,7 @@ App.goalMap = {
               ? Number(timeDataWithPlayers[key][selectedGoalie]) : 0;
           } else {
             // "All Goalies" - sum all goalies
-            const allGoalies = (App.data.selectedPlayers || []).filter(p => p.position === "G");
+            const allGoalies = this.getPlayersFromStorage().filter(p => p.position === "G");
             allGoalies.forEach(goalie => {
               if (timeDataWithPlayers[key] && timeDataWithPlayers[key][goalie.name]) {
                 displayValue += Number(timeDataWithPlayers[key][goalie.name]);
@@ -1273,7 +1299,7 @@ App.goalMap = {
               displayVal = (currentTimeDataWithPlayers[key] && currentTimeDataWithPlayers[key][selectedGoalie]) || 0;
             } else {
               // "All Goalies" - sum all goalies
-              const allGoalies = (App.data.selectedPlayers || []).filter(p => p.position === "G");
+              const allGoalies = this.getPlayersFromStorage().filter(p => p.position === "G");
               allGoalies.forEach(goalie => {
                 displayVal += (currentTimeDataWithPlayers[key] && Number(currentTimeDataWithPlayers[key][goalie.name])) || 0;
               });
@@ -1422,7 +1448,7 @@ App.goalMap = {
     
     filterSelect.innerHTML = '<option value="">All Players</option>';
     // Nur Spieler ohne Goalie-Position (G) in die Liste aufnehmen
-    (App.data.selectedPlayers || [])
+    this.getPlayersFromStorage()
       .filter(player => player.position !== "G" && !player.isGoalie)
       .forEach(player => {
         const option = document.createElement("option");
@@ -1456,7 +1482,7 @@ App.goalMap = {
     const goalieFilterSelect = document.getElementById("goalMapGoalieFilter");
     if (goalieFilterSelect) {
       goalieFilterSelect.innerHTML = '<option value="">All Goalies</option>';
-      const goalies = (App.data.selectedPlayers || []).filter(p => p.position === "G");
+      const goalies = this.getPlayersFromStorage().filter(p => p.position === "G");
       goalies.forEach(goalie => {
         const option = document.createElement("option");
         option.value = goalie.name;
@@ -1532,7 +1558,7 @@ App.goalMap = {
     // Player and goalie filters operate independently on different zones
     
     // Detect if "All Goalies" is selected
-    const allGoalies = (App.data.selectedPlayers || []).filter(p => p.position === "G");
+    const allGoalies = this.getPlayersFromStorage().filter(p => p.position === "G");
     const allGoalieNames = allGoalies.map(g => g.name);
     const isAllGoaliesFilter = (goalieNames.length === allGoalieNames.length && 
                                  goalieNames.every(name => allGoalieNames.includes(name)));
