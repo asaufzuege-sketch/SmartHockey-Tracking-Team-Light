@@ -1574,8 +1574,16 @@ App.goalMap = {
           const playerName = marker.dataset.player;
           
           if (isAllGoaliesFilter) {
-            // "All Goalies" - show all red zone markers
-            marker.style.display = '';
+            // Goal Map: Nur Marker von aktuell ausgewählten Goalies anzeigen
+            const currentGoalieNames = (App.data.selectedPlayers || [])
+              .filter(p => p.position === "G")
+              .map(g => g.name);
+            
+            if (playerName && currentGoalieNames.includes(playerName)) {
+              marker.style.display = '';
+            } else {
+              marker.style.display = 'none';
+            }
           } else if (playerName && goalieNames.includes(playerName)) {
             // Marker belongs to selected goalie - show
             marker.style.display = '';
@@ -1589,14 +1597,22 @@ App.goalMap = {
     });
     
     // Update time tracking to show only goalie times
-    this.applyGoalieTimeTrackingFilter(goalieNames);
+    this.applyGoalieTimeTrackingFilter(goalieNames, isAllGoaliesFilter);
   },
   
-  applyGoalieTimeTrackingFilter(goalieNames) {
+  applyGoalieTimeTrackingFilter(goalieNames, isAllGoaliesFilter = false) {
     if (!this.timeTrackingBox) return;
     
     const teamId = App.helpers.getCurrentTeamId();
     const timeDataWithPlayers = App.helpers.safeJSONParse(`timeDataWithPlayers_${teamId}`, {});
+    
+    // Bei "All Goalies" nur aktuell ausgewählte Goalies verwenden
+    let goalieNamesToSum = goalieNames;
+    if (isAllGoaliesFilter) {
+      goalieNamesToSum = (App.data.selectedPlayers || [])
+        .filter(p => p.position === "G")
+        .map(g => g.name);
+    }
     
     this.timeTrackingBox.querySelectorAll(".period").forEach((period, pIdx) => {
       const periodNum = period.dataset.period || `p${pIdx}`;
@@ -1609,9 +1625,9 @@ App.goalMap = {
         const key = `${periodNum}_${idx}`;
         const playerData = timeDataWithPlayers[key] || {};
         
-        // Sum up time for all goalies
+        // Sum up time for filtered goalies (either selected goalie(s) or all currently active goalies)
         let displayVal = 0;
-        goalieNames.forEach(goalieName => {
+        goalieNamesToSum.forEach(goalieName => {
           displayVal += Number(playerData[goalieName]) || 0;
         });
         
