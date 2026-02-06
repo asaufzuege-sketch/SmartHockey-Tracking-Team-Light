@@ -131,7 +131,7 @@ App.seasonMap = {
     // 1c) Add historical players from Field Box (index 0) with Y >= 50%
     if (allMarkers && allMarkers.length > 0 && Array.isArray(allMarkers[0])) {
       allMarkers[0].forEach(m => {
-        if (m.player && m.yPct >= this.VERTICAL_SPLIT_THRESHOLD) {
+        if (m.player && m.yPct !== undefined && !isNaN(m.yPct) && m.yPct >= this.VERTICAL_SPLIT_THRESHOLD) {
           allGoalies.add(m.player);
         }
       });
@@ -159,7 +159,7 @@ App.seasonMap = {
           }
         });
       } catch (e) {
-        console.warn("Failed to parse seasonMapTimeDataWithPlayers for goalie filter", e);
+        console.warn("Failed to parse seasonMapTimeDataWithPlayers", e);
       }
     }
     
@@ -185,7 +185,7 @@ App.seasonMap = {
     // 2c) Add historical players from Field Box (index 0) with Y < 50%
     if (allMarkers && allMarkers.length > 0 && Array.isArray(allMarkers[0])) {
       allMarkers[0].forEach(m => {
-        if (m.player && m.yPct < this.VERTICAL_SPLIT_THRESHOLD) {
+        if (m.player && m.yPct !== undefined && !isNaN(m.yPct) && m.yPct < this.VERTICAL_SPLIT_THRESHOLD) {
           allPlayers.add(m.player);
         }
       });
