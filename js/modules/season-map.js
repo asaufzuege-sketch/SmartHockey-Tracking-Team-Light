@@ -190,8 +190,6 @@ App.seasonMap = {
       // Collect goalies who have data in the RED ZONE (Goalie Zone)
       const redZoneGoalies = new Set();
       
-      const teamId = App.helpers.getCurrentTeamId();
-      
       // Get goalies from RED ZONE markers (seasonGoalRedBox is the 3rd box, index 2)
       const allMarkers = App.helpers.safeJSONParse(`seasonMapMarkers_${teamId}`, []);
       if (allMarkers && allMarkers.length > 2 && Array.isArray(allMarkers[2])) {
