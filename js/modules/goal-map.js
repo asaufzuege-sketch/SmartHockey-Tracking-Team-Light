@@ -1644,6 +1644,10 @@ App.goalMap = {
       AppStorage.removeItem(`goalMapPlayerFilter_${teamId}`);
     }
     
+    // Get active players to verify markers belong to current roster
+    const activePlayers = this.getPlayersFromStorage();
+    const activePlayerNames = activePlayers.map(p => p.name);
+    
     const boxes = document.querySelectorAll(App.selectors.torbildBoxes);
     boxes.forEach(box => {
       const markers = box.querySelectorAll(".marker-dot");
@@ -1652,10 +1656,15 @@ App.goalMap = {
         const isGreenMarker = this.isGreenZoneMarker(marker, box);
         
         if (isGreenMarker) {
+          const markerPlayer = marker.dataset.player;
+          
           if (this.playerFilter) {
-            marker.style.display = (marker.dataset.player === this.playerFilter) ? '' : 'none';
+            // Specific player filter is active
+            marker.style.display = (markerPlayer === this.playerFilter) ? '' : 'none';
           } else {
-            marker.style.display = '';
+            // No specific filter: show marker only if player is in active roster
+            // This prevents "ghost" markers from deleted players from appearing
+            marker.style.display = activePlayerNames.includes(markerPlayer) ? '' : 'none';
           }
         }
         // Red zone markers are not touched by this function
