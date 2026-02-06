@@ -151,25 +151,25 @@ App.seasonMap = {
       }
     }
     
+    // Get all players from storage once
+    const allStoredPlayers = this.getPlayersFromStorage();
+    
     // Get active goalies (position "G") to exclude them from the filter
     const activeGoalieNames = new Set(
-      this.getPlayersFromStorage()
+      allStoredPlayers
         .filter(player => player.position === "G")
         .map(p => p.name)
     );
     
-    // Merge historical players with current active roster (excluding goalies)
-    const activePlayers = this.getPlayersFromStorage()
+    // Get current active roster (excluding goalies)
+    const activePlayers = allStoredPlayers
       .filter(player => player.position !== "G")
       .map(p => p.name);
     
-    // Combine and deduplicate
-    const allPlayerNames = new Set([...historicalPlayers, ...activePlayers]);
-    
-    // Filter out any names that are currently active goalies
-    activeGoalieNames.forEach(goalieName => {
-      allPlayerNames.delete(goalieName);
-    });
+    // Combine historical and active players, filtering out active goalies
+    const allPlayerNames = new Set(
+      [...historicalPlayers, ...activePlayers].filter(name => !activeGoalieNames.has(name))
+    );
     
     // Add all players to dropdown (sorted alphabetically)
     Array.from(allPlayerNames).sort().forEach(playerName => {
