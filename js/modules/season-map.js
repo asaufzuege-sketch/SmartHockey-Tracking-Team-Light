@@ -106,27 +106,92 @@ App.seasonMap = {
     filterSelect.innerHTML = '<option value="">All Players</option>';
     
     const teamId = App.helpers.getCurrentTeamId();
-    
-    // Collect ALL historical player names from GREEN ZONE data (field + green goal)
-    const historicalPlayers = new Set();
-    
-    // Get players from GREEN ZONE markers (indices 0 and 1: seasonFieldBox and seasonGoalGreenBox)
     const allMarkers = App.helpers.safeJSONParse(`seasonMapMarkers_${teamId}`, []);
-    if (allMarkers) {
-      // Process field box (index 0) and green goal box (index 1)
-      [0, 1].forEach(boxIdx => {
-        if (allMarkers.length > boxIdx && Array.isArray(allMarkers[boxIdx])) {
-          allMarkers[boxIdx].forEach(m => {
-            if (m.player) {
-              historicalPlayers.add(m.player);
-            }
-          });
+    const allStoredPlayers = this.getPlayersFromStorage();
+    
+    // -----------------------------
+    // STEP 1: Build allGoalies Set
+    // -----------------------------
+    const allGoalies = new Set();
+    
+    // 1a) Add current players with position "G"
+    allStoredPlayers
+      .filter(player => player.position === "G")
+      .forEach(p => allGoalies.add(p.name));
+    
+    // 1b) Add historical players from Red Goal Box (index 2)
+    if (allMarkers && allMarkers.length > 2 && Array.isArray(allMarkers[2])) {
+      allMarkers[2].forEach(m => {
+        if (m.player) {
+          allGoalies.add(m.player);
         }
       });
     }
     
-    // Get players from time data TOP ROW (indices 0-3, which are green zone/scored goals)
+    // 1c) Add historical players from Field Box (index 0) with Y >= 50%
+    if (allMarkers && allMarkers.length > 0 && Array.isArray(allMarkers[0])) {
+      allMarkers[0].forEach(m => {
+        if (m.player && m.yPct !== undefined && !isNaN(m.yPct) && m.yPct >= this.VERTICAL_SPLIT_THRESHOLD) {
+          allGoalies.add(m.player);
+        }
+      });
+    }
+    
+    // 1d) Add historical players from Red Zone Buttons (indices 4-7)
     const timeDataRaw = AppStorage.getItem(`seasonMapTimeDataWithPlayers_${teamId}`);
+    if (timeDataRaw) {
+      try {
+        const timeData = JSON.parse(timeDataRaw);
+        const periods = ['p1', 'p2', 'p3'];
+        periods.forEach(periodNum => {
+          // Check bottom row buttons (indices 4-7 for goalie/red zone)
+          for (let btnIdx = 4; btnIdx <= 7; btnIdx++) {
+            const key = `${periodNum}_${btnIdx}`;
+            const playerData = timeData[key];
+            if (typeof playerData === 'object' && playerData !== null) {
+              Object.keys(playerData).forEach(playerName => {
+                // Only add if there's actual data (non-zero values)
+                if (Number(playerData[playerName]) > 0) {
+                  allGoalies.add(playerName);
+                }
+              });
+            }
+          }
+        });
+      } catch (e) {
+        console.warn("Failed to parse seasonMapTimeDataWithPlayers", e);
+      }
+    }
+    
+    // -----------------------------
+    // STEP 2: Build allPlayers Set
+    // -----------------------------
+    const allPlayers = new Set();
+    
+    // 2a) Add current players with position != "G"
+    allStoredPlayers
+      .filter(player => player.position !== "G")
+      .forEach(p => allPlayers.add(p.name));
+    
+    // 2b) Add historical players from Green Goal Box (index 1)
+    if (allMarkers && allMarkers.length > 1 && Array.isArray(allMarkers[1])) {
+      allMarkers[1].forEach(m => {
+        if (m.player) {
+          allPlayers.add(m.player);
+        }
+      });
+    }
+    
+    // 2c) Add historical players from Field Box (index 0) with Y < 50%
+    if (allMarkers && allMarkers.length > 0 && Array.isArray(allMarkers[0])) {
+      allMarkers[0].forEach(m => {
+        if (m.player && m.yPct !== undefined && !isNaN(m.yPct) && m.yPct < this.VERTICAL_SPLIT_THRESHOLD) {
+          allPlayers.add(m.player);
+        }
+      });
+    }
+    
+    // 2d) Add historical players from Green Zone Buttons (indices 0-3)
     if (timeDataRaw) {
       try {
         const timeData = JSON.parse(timeDataRaw);
@@ -140,7 +205,7 @@ App.seasonMap = {
               Object.keys(playerData).forEach(playerName => {
                 // Only add if there's actual data (non-zero values)
                 if (Number(playerData[playerName]) > 0) {
-                  historicalPlayers.add(playerName);
+                  allPlayers.add(playerName);
                 }
               });
             }
@@ -151,28 +216,16 @@ App.seasonMap = {
       }
     }
     
-    // Get all players from storage once
-    const allStoredPlayers = this.getPlayersFromStorage();
-    
-    // Get active goalies (position "G") to exclude them from the filter
-    const activeGoalieNames = new Set(
-      allStoredPlayers
-        .filter(player => player.position === "G")
-        .map(p => p.name)
-    );
-    
-    // Get current active roster (excluding goalies)
-    const activePlayers = allStoredPlayers
-      .filter(player => player.position !== "G")
-      .map(p => p.name);
-    
-    // Combine historical and active players, filtering out active goalies
-    const allPlayerNames = new Set(
-      [...historicalPlayers, ...activePlayers].filter(name => !activeGoalieNames.has(name))
-    );
+    // -----------------------------
+    // STEP 3: Refine Player Filter
+    // Remove any name from allPlayers that exists in allGoalies
+    // -----------------------------
+    allGoalies.forEach(goalieName => {
+      allPlayers.delete(goalieName);
+    });
     
     // Add all players to dropdown (sorted alphabetically)
-    Array.from(allPlayerNames).sort().forEach(playerName => {
+    Array.from(allPlayers).sort().forEach(playerName => {
       const option = document.createElement("option");
       option.value = playerName;
       option.textContent = playerName;
@@ -196,62 +249,15 @@ App.seasonMap = {
       this.playerFilter = savedFilter;
     }
     
-    // Goalie Filter Dropdown - populate with goalies who have RED ZONE data only
+    // -----------------------------
+    // Populate Goalie Filter with allGoalies
+    // -----------------------------
     const goalieFilterSelect = document.getElementById("seasonMapGoalieFilter");
     if (goalieFilterSelect) {
-      // Collect goalies who have data in the RED ZONE (Goalie Zone)
-      const redZoneGoalies = new Set();
-      
-      // Get goalies from RED ZONE markers (seasonGoalRedBox is the 3rd box, index 2)
-      const allMarkers = App.helpers.safeJSONParse(`seasonMapMarkers_${teamId}`, []);
-      if (allMarkers && allMarkers.length > 2 && Array.isArray(allMarkers[2])) {
-        // Index 2 corresponds to seasonGoalRedBox (red zone)
-        allMarkers[2].forEach(m => {
-          if (m.player) {
-            redZoneGoalies.add(m.player);
-          }
-        });
-      }
-      
-      // Get goalies from time data BOTTOM ROW (indices 4-7, which are red zone/conceded goals)
-      const timeDataRaw = AppStorage.getItem(`seasonMapTimeDataWithPlayers_${teamId}`);
-      if (timeDataRaw) {
-        try {
-          const timeData = JSON.parse(timeDataRaw);
-          const periods = ['p1', 'p2', 'p3'];
-          periods.forEach(periodNum => {
-            // Check bottom row buttons (indices 4-7 for goalie/red zone)
-            for (let btnIdx = 4; btnIdx <= 7; btnIdx++) {
-              const key = `${periodNum}_${btnIdx}`;
-              const playerData = timeData[key];
-              if (typeof playerData === 'object' && playerData !== null) {
-                Object.keys(playerData).forEach(playerName => {
-                  // Only add if there's actual data (non-zero values)
-                  if (Number(playerData[playerName]) > 0) {
-                    redZoneGoalies.add(playerName);
-                  }
-                });
-              }
-            }
-          });
-        } catch (e) {
-          console.warn("Failed to parse seasonMapTimeDataWithPlayers for goalie filter", e);
-        }
-      }
-      
-      // Show only goalies with RED ZONE data
-      let goaliesToShow = Array.from(redZoneGoalies);
-      
-      // Fallback: Wenn keine Season-Daten existieren, zeige aktuelle aktive Goalies
-      if (goaliesToShow.length === 0) {
-        const currentGoalies = this.getPlayersFromStorage()
-          .filter(p => p.position === "G")
-          .map(g => g.name);
-        goaliesToShow = currentGoalies;
-      }
-      
       goalieFilterSelect.innerHTML = '<option value="">All Goalies</option>';
-      goaliesToShow.forEach(goalieName => {
+      
+      // Use the comprehensive allGoalies set built above
+      Array.from(allGoalies).sort().forEach(goalieName => {
         const option = document.createElement("option");
         option.value = goalieName;
         option.textContent = goalieName;
