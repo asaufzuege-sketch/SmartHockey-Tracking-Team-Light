@@ -81,36 +81,27 @@
     console.log('[Storage Migration] Starting migration...');
     
     // Collect all keys that need migration
-    // 1. Unprefixed keys (legacy data)
-    // 2. Old s918_ keys (from Team Blue app or previous version)
+    // Only truly unprefixed (legacy) keys — skip any key that belongs to another app
     // Get all keys first to avoid issues with modifying localStorage during iteration
     const allKeys = Object.keys(localStorage);
     const keysToMigrate = allKeys.filter(key => 
-      key && (
-        // Unprefixed keys
-        (!key.startsWith('sLight_') && !key.startsWith('s918_') && !key.startsWith('s1player_') && !key.startsWith('s1team_'))
-        ||
-        // Old s918_ keys to migrate
-        key.startsWith('s918_')
-      )
+      key &&
+      !key.startsWith('sLight_') &&
+      !key.startsWith('s918_') &&
+      !key.startsWith('sInline_') &&
+      !key.startsWith('s1player_') &&
+      !key.startsWith('s1team_')
     );
     
-    // Migrate all found keys
+    // Migrate all found keys (copy only — do NOT delete originals)
     let migratedCount = 0;
     keysToMigrate.forEach(key => {
       const oldData = localStorage.getItem(key);
       if (oldData !== null) {
-        // Remove old prefix if it exists
-        let cleanKey = key;
-        if (key.startsWith('s918_')) {
-          cleanKey = key.substring(5); // Remove 's918_' prefix
-        }
-        
-        const newKey = PREFIX + cleanKey;
+        const newKey = PREFIX + key;
         // Only migrate if new key doesn't exist yet
         if (localStorage.getItem(newKey) === null) {
           localStorage.setItem(newKey, oldData);
-          localStorage.removeItem(key);
           migratedCount++;
           console.log(`[Storage Migration] Migrated: ${key} → ${newKey}`);
         }
