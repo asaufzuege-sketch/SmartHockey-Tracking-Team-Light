@@ -3,9 +3,9 @@
     "relation": ["delegate_permission/common.handle_all_urls"],
     "target": {
       "namespace": "android_app",
-      "package_name": "com.smarthockey.tracking918",
+      "package_name": "io.github.asaufzuege_sketch.smarthockey_light",
       "sha256_cert_fingerprints": [
-        "REPLACE_WITH_YOUR_SHA256_FINGERPRINT"
+        "FF:E9:B0:6E:7E:10:F8:94:06:95:84:8E:E3:73:FC:8C:43:2F:CC:E9:3A:52:FC:C4:5A:77:48:96:9D:49:3B:4A"
       ]
     }
   }
