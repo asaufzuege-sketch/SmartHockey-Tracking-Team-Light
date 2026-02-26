@@ -304,15 +304,19 @@ setStickyOffsets() {
     const savedPlayersKey = `playerSelectionData_${currentTeamId}`;
 
     let goalieNames = [];
+    let fieldPlayerNames = [];
     try {
       const savedPlayers = JSON.parse(AppStorage.getItem(savedPlayersKey) || "[]");
       goalieNames = savedPlayers
         .filter(p => p.position === "G" || p.isGoalie)
         .map(p => p.name);
+      fieldPlayerNames = savedPlayers
+        .filter(p => p.position !== "G" && !p.isGoalie && p.name && p.name.trim() !== "")
+        .map(p => p.name);
     } catch (e) {}
 
-    // Filter out goalies from rows - use new variable instead of reassigning const
-    const filteredRows = rows.filter(r => !goalieNames.includes(r.name));
+    // Only filter out names that are EXCLUSIVELY goalies (not also field players)
+    const filteredRows = rows.filter(r => !goalieNames.includes(r.name) || fieldPlayerNames.includes(r.name));
 
     // MVP Rank berechnen und eintragen
     const sortedByMvp = filteredRows.slice().sort((a, b) => (b.mvpPointsRounded || 0) - (a.mvpPointsRounded || 0));
@@ -908,7 +912,8 @@ setStickyOffsets() {
   performExport() {
     if (!confirm("Export game to Season?")) return;
 
-    App.data.selectedPlayers.forEach(p => {
+    const fieldPlayers = App.data.selectedPlayers.filter(p => p.position !== "G");
+    fieldPlayers.forEach(p => {
       const name = p.name;
       const stats = App.data.statsData[name] || {};
       const timeSeconds = Number(App.data.playerTimes[name] || 0);
@@ -1472,8 +1477,17 @@ setStickyOffsets() {
       return '';
     }
     
-    const player = players.find(p => p.name === playerName);
-    return player?.position || '';
+    // Find ALL entries matching this player name
+    const matches = players.filter(p => p.name === playerName);
+    
+    if (matches.length === 0) return '';
+    
+    // If the name exists as both goalie and field player, prefer the field player position
+    const fieldPlayerMatch = matches.find(p => p.position !== "G" && p.position !== "");
+    if (fieldPlayerMatch) return fieldPlayerMatch.position;
+    
+    // Otherwise return the first match's position (original behavior)
+    return matches[0].position || '';
   },
   
   filterByPosition(position) {

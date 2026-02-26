@@ -427,23 +427,35 @@ App.lineUp = {
     const allPlayers = this.getAvailablePlayers();
     let players = allPlayers.filter(p => !this.playersOut.includes(p.name));
     
+    // Filter out goalies - they should not be available for lineup positions
+    players = players.filter(p => {
+      const pos = (p.position || '').toUpperCase();
+      return !this.goaliePositions.includes(pos);
+    });
+    
     // Sort players (alphabetically if no season data, by MVP if season data exists)
     players = this.sortPlayersForLineup(players);
     
-    // Get already assigned players
-    const assignedPlayers = Object.values(this.lineUpData);
+    // Get already assigned players (only within the same section)
+    const currentSection = this.getPositionSection(this.currentPosition.key);
+    const assignedInSection = [];
+    Object.entries(this.lineUpData).forEach(([key, name]) => {
+      if (this.getPositionSection(key) === currentSection) {
+        assignedInSection.push(name);
+      }
+    });
     
     // Render player list
     playerList.innerHTML = players.map(player => {
-      const isAssigned = assignedPlayers.includes(player.name);
+      const isAssignedInSection = assignedInSection.includes(player.name);
       const isCurrentPosition = this.lineUpData[this.currentPosition.key] === player.name;
       
       return `
-        <div class="lineup-player-option ${isCurrentPosition ? 'selected' : ''} ${isAssigned && !isCurrentPosition ? 'assigned' : ''}"
+        <div class="lineup-player-option ${isCurrentPosition ? 'selected' : ''} ${isAssignedInSection && !isCurrentPosition ? 'assigned' : ''}"
              data-player="${App.helpers.escapeHtml(player.name)}">
           <span class="lineup-player-number">${App.helpers.escapeHtml(player.number || "")}</span>
           <span class="lineup-player-name">${App.helpers.escapeHtml(player.name)}</span>
-          ${isAssigned && !isCurrentPosition ? '<span class="lineup-player-assigned">✓</span>' : ''}
+          ${isAssignedInSection && !isCurrentPosition ? '<span class="lineup-player-assigned">✓</span>' : ''}
         </div>
       `;
     }).join('');
@@ -460,6 +472,12 @@ App.lineUp = {
     this.modalOpen = true;
   },
   
+  getPositionSection(positionKey) {
+    if (positionKey.startsWith('PP-')) return 'powerplay';
+    if (positionKey.startsWith('BP-')) return 'boxplay';
+    return 'regular';
+  },
+
   getPositionLabel(pos) {
     const labels = {
       "LW": "Left Wing",
@@ -496,9 +514,13 @@ App.lineUp = {
       return;
     }
     
-    // Remove player from any previous position
+    // Determine which section the current position belongs to
+    const currentKey = this.currentPosition.key;
+    const currentSection = this.getPositionSection(currentKey);
+
+    // Only remove the player from positions in the SAME section
     Object.keys(this.lineUpData).forEach(key => {
-      if (this.lineUpData[key] === playerName) {
+      if (this.lineUpData[key] === playerName && this.getPositionSection(key) === currentSection) {
         delete this.lineUpData[key];
       }
     });

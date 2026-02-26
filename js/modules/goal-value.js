@@ -255,8 +255,12 @@ App.goalValue = {
       const goalieNames = savedPlayers
         .filter(p => p.position === "G" || p.isGoalie)
         .map(p => p.name);
+      const fieldPlayerNames = savedPlayers
+        .filter(p => p.position !== "G" && !p.isGoalie && p.name && p.name.trim() !== "")
+        .map(p => p.name);
       
-      playersList = playersList.filter(name => !goalieNames.includes(name));
+      // Only filter out names that are EXCLUSIVELY goalies (not also field players)
+      playersList = playersList.filter(name => !goalieNames.includes(name) || fieldPlayerNames.includes(name));
     } catch (e) {
       // Fallback: filter from selectedPlayers
       const goalieNames = (App.data.selectedPlayers || [])
