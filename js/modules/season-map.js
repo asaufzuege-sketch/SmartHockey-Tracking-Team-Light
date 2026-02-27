@@ -282,6 +282,22 @@ App.seasonMap = {
     }
   },
   
+  // Refresh filter dropdowns to reflect current localStorage state (e.g. after reset)
+  refreshPlayerFilters() {
+    const filterSelect = document.getElementById("seasonMapPlayerFilter");
+    if (filterSelect) {
+      filterSelect.innerHTML = '<option value="">All Players</option>';
+      filterSelect.classList.remove("active");
+    }
+    this.playerFilter = null;
+
+    const goalieFilterSelect = document.getElementById("seasonMapGoalieFilter");
+    if (goalieFilterSelect) {
+      goalieFilterSelect.innerHTML = '<option value="">All Goalies</option>';
+      goalieFilterSelect.classList.remove("active");
+    }
+  },
+
   // Helper: Refresh momentum graphic if available
   refreshMomentumGraphic() {
     if (typeof window.renderSeasonMomentumGraphic === 'function') {
@@ -1193,6 +1209,9 @@ App.seasonMap = {
     AppStorage.removeItem(`seasonMapMarkers_${teamId}`);
     AppStorage.removeItem(`seasonMapTimeData_${teamId}`);
     AppStorage.removeItem(`seasonMapTimeDataWithPlayers_${teamId}`);
+    
+    // Refresh filter dropdowns to clear old player names
+    this.refreshPlayerFilters();
     
     // Reset initialization flag to allow re-initialization
     this.timeTrackingInitialized = false;
