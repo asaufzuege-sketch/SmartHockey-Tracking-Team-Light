@@ -598,6 +598,17 @@
       }).then(reg => {
         console.log('[App] Service Worker registered');
         
+        // Request persistent storage to prevent mobile browsers from deleting data
+        if (navigator.storage && navigator.storage.persist) {
+          navigator.storage.persist().then(granted => {
+            if (granted) {
+              console.log('[App] ✅ Persistent storage granted - data will NOT be auto-deleted');
+            } else {
+              console.log('[App] ⚠️ Persistent storage not granted');
+            }
+          }).catch(err => console.log('[App] Persistent storage request failed:', err));
+        }
+        
         // Prüfe sofort auf Updates
         reg.update();
         
