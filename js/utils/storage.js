@@ -77,11 +77,30 @@ App.storage = {
     AppStorage.setItem(`seasonData_${teamId}`, JSON.stringify(App.data.seasonData));
   },
   
+  saveSeasonMapData() {
+    const teamId = App.helpers.getCurrentTeamId();
+    // Defensively re-save season map data that already exists in localStorage
+    // This ensures aggressive browser cleanup (Samsung) doesn't evict these keys
+    const markers = AppStorage.getItem(`seasonMapMarkers_${teamId}`);
+    if (markers) {
+      AppStorage.setItem(`seasonMapMarkers_${teamId}`, markers);
+    }
+    const timeData = AppStorage.getItem(`seasonMapTimeData_${teamId}`);
+    if (timeData) {
+      AppStorage.setItem(`seasonMapTimeData_${teamId}`, timeData);
+    }
+    const timeDataWithPlayers = AppStorage.getItem(`seasonMapTimeDataWithPlayers_${teamId}`);
+    if (timeDataWithPlayers) {
+      AppStorage.setItem(`seasonMapTimeDataWithPlayers_${teamId}`, timeDataWithPlayers);
+    }
+  },
+
   saveAll() {
     this.saveSelectedPlayers();
     this.saveStatsData();
     this.savePlayerTimes();
     this.saveSeasonData();
+    this.saveSeasonMapData(); // NEW: defensive re-save for Season Map data
   },
   
   getCurrentPage() {

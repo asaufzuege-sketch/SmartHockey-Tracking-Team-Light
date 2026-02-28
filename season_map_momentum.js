@@ -36,13 +36,13 @@
   // Goal Markers Management
   function saveGoalMarkers() {
     const teamId = App.helpers.getCurrentTeamId();
-    AppStorage.setItem(`seasonMapMarkers_${teamId}`, JSON.stringify(goalMarkers));
+    AppStorage.setItem(`seasonMapMomentumMarkers_${teamId}`, JSON.stringify(goalMarkers));
   }
   
   function loadGoalMarkers() {
     try {
       const teamId = App.helpers.getCurrentTeamId();
-      const saved = AppStorage.getItem(`seasonMapMarkers_${teamId}`);
+      const saved = AppStorage.getItem(`seasonMapMomentumMarkers_${teamId}`);
       if (saved) {
         const parsed = JSON.parse(saved);
         
@@ -219,6 +219,22 @@
       });
       
       field.addEventListener('touchend', (e) => {
+        if (longPressTimer) {
+          clearTimeout(longPressTimer);
+          longPressTimer = null;
+          longPressTarget = null;
+        }
+      });
+
+      field.addEventListener('touchmove', (e) => {
+        if (longPressTimer) {
+          clearTimeout(longPressTimer);
+          longPressTimer = null;
+          longPressTarget = null;
+        }
+      });
+
+      field.addEventListener('touchcancel', (e) => {
         if (longPressTimer) {
           clearTimeout(longPressTimer);
           longPressTimer = null;
@@ -637,7 +653,7 @@
         const teamId = App.helpers.getCurrentTeamId();
         AppStorage.removeItem(`seasonMapTimeData_${teamId}`);
         AppStorage.removeItem(`seasonMapTimeDataWithPlayers_${teamId}`);
-        AppStorage.removeItem(`seasonMapMarkers_${teamId}`); // Clear goal markers too
+        AppStorage.removeItem(`seasonMapMomentumMarkers_${teamId}`); // Clear goal markers too
       } catch (e) {}
       goalMarkers = []; // Clear in-memory markers
       setTimeout(() => {
@@ -646,14 +662,14 @@
       }, 140);
     };
 
-    ['resetSeasonMapBtn','resetTorbildBtn','resetBtn'].forEach(id => {
+    ['resetSeasonMapBtn'].forEach(id => {
       const b = document.getElementById(id);
       if (b) b.addEventListener('click', clearLSOnReset);
     });
     
     document.addEventListener('click', (e) => {
       const id = e?.target?.id;
-      if (id === 'resetSeasonMapBtn' || id === 'resetTorbildBtn' || id === 'resetBtn') clearLSOnReset();
+      if (id === 'resetSeasonMapBtn') clearLSOnReset();
     }, true);
 
     window.addEventListener('storage', (e) => {
