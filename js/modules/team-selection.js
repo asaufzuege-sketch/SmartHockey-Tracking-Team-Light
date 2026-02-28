@@ -218,13 +218,16 @@ App.teamSelection = (function() {
         const input = document.getElementById('teamNameInput');
         const newName = input ? input.value.trim() : '';
         
-        if (newName) {
-            const teamData = getTeam(editingTeamId);
-            if (teamData) {
+        const teamData = getTeam(editingTeamId);
+        if (teamData) {
+            if (newName) {
                 teamData.name = newName;
-                saveTeam(editingTeamId, teamData);
-                renderTeamSelection();
+            } else {
+                const defaultTeam = TEAMS.find(t => t.id === editingTeamId);
+                teamData.name = defaultTeam ? defaultTeam.name : editingTeamId;
             }
+            saveTeam(editingTeamId, teamData);
+            renderTeamSelection();
         }
         
         closeEditModal();
