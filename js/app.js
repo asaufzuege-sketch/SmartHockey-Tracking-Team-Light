@@ -35,7 +35,25 @@ function waitForCSSLoad() {
 
 // Haupt-App Initialisierung
 // Wait for both DOM content and CSS to be fully loaded to prevent timing issues
-function initializeApp() {
+async function restoreFromIndexedDBIfNeeded() {
+  const hasData = Object.keys(localStorage).some(k => k.startsWith('sLight_'));
+  if (hasData) return;
+  if (typeof IDBBackup === 'undefined') return;
+  try {
+    const data = await IDBBackup.loadFullBackup();
+    if (data && Object.keys(data).length > 0) {
+      Object.keys(data).forEach(key => {
+        try { localStorage.setItem(key, data[key]); } catch(e) {}
+      });
+      console.log('[Backup] ✅ Restored from IndexedDB — reloading app');
+      sessionStorage.setItem('smarthockey_restored', '1');
+      window.location.reload();
+      await new Promise(() => {});
+    }
+  } catch(e) {}
+}
+
+async function initializeApp() {
   console.log(`Player Statistics App v${App.version} loading...`);
   
   // 1. Theme & Styles initialisieren
@@ -54,10 +72,13 @@ function initializeApp() {
     lineUp: document.getElementById("lineUpPage")
   };
   
-  // 3. Team Selection initialisieren (MUSS VOR storage.load() sein!)
+  // 3. Backup-System: If localStorage is empty, restore from IndexedDB backup
+  await restoreFromIndexedDBIfNeeded();
+
+  // 4. Team Selection initialisieren (MUSS VOR storage.load() sein!)
   App.teamSelection.init();
   
-  // 4. Daten aus LocalStorage laden (benötigt teamSelection.getCurrentTeamInfo())
+  // 5. Daten aus LocalStorage laden (benötigt teamSelection.getCurrentTeamInfo())
   App.storage.load();
   
   // KRITISCH BUG 6 FIX: Re-Render nach Storage-Load für korrekte Namen
@@ -73,7 +94,7 @@ function initializeApp() {
     });
   });
   
-  // 5. Alle anderen Module initialisieren
+  // 6. Alle anderen Module initialisieren
   App.csvHandler.init();
   App.playerSelection.init();
   App.statsTable.init();
@@ -83,12 +104,87 @@ function initializeApp() {
   App.goalValue.init();
   App.lineUp.init();
   
-  // 6. Page-specific info system initialisieren
+  // 7. Page-specific info system initialisieren
   if (App.pageInfo) {
     App.pageInfo.init();
   }
-  
-  // 7. Navigation Event Listeners
+
+  // Start automatic IndexedDB backup (30s interval + visibility/unload hooks)
+  AppStorage.startAutoBackup();
+
+  // Check if this load follows a data restore
+  if (sessionStorage.getItem('smarthockey_restored')) {
+    sessionStorage.removeItem('smarthockey_restored');
+    console.log('[Backup] ✅ Data successfully restored from backup');
+  }
+
+  // ── Manual Download Backup ──
+  document.getElementById('downloadBackupBtn')?.addEventListener('click', () => {
+    const data = {};
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && key.startsWith('sLight_')) {
+        data[key] = localStorage.getItem(key);
+      }
+    }
+    const exportObj = {
+      appName: 'SmartHockey-Tracking-Team-Light',
+      exportDate: new Date().toISOString(),
+      data
+    };
+    const blob = new Blob([JSON.stringify(exportObj, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    const dateStr = new Date().toISOString().slice(0, 10);
+    a.href = url;
+    a.download = `SmartHockey_TeamLight_Backup_${dateStr}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  });
+
+  // ── Manual Upload/Restore Backup ──
+  document.getElementById('uploadBackupBtn')?.addEventListener('click', () => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.json';
+    input.onchange = (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        try {
+          const importObj = JSON.parse(event.target.result);
+          if (!importObj.data || typeof importObj.data !== 'object') {
+            alert('Invalid backup file.');
+            return;
+          }
+          if (importObj.appName && importObj.appName !== 'SmartHockey-Tracking-Team-Light') {
+            alert('This backup is from a different app.');
+            return;
+          }
+          const keyCount = Object.keys(importObj.data).length;
+          if (!confirm('Import backup? ' + keyCount + ' entries will be restored.\nAll current data will be overwritten.')) {
+            return;
+          }
+          Object.keys(localStorage).filter(k => k.startsWith('sLight_')).forEach(k => localStorage.removeItem(k));
+          Object.keys(importObj.data).forEach(key => {
+            try { localStorage.setItem(key, importObj.data[key]); } catch(e) {}
+          });
+          if (typeof IDBBackup !== 'undefined') {
+            IDBBackup.saveFullBackup().catch(() => {});
+          }
+          sessionStorage.setItem('smarthockey_restored', '1');
+          window.location.reload();
+        } catch (err) {
+          alert('Error reading backup: ' + err.message);
+        }
+      };
+      reader.readAsText(file);
+    };
+    input.click();
+  });
+
+  // 8. Navigation Event Listeners
   document.getElementById("teamSelectionInfoBtn")?.addEventListener("click", () => {
     App.teamSelection?.showInfo();
   });
@@ -137,7 +233,7 @@ function initializeApp() {
     App.showPage("lineUp");
   });
   
-  // 8. Delegierte Back-Button Handler
+  // 9. Delegierte Back-Button Handler
   document.addEventListener("click", (e) => {
     try {
       const btn = e.target.closest("button");
@@ -166,7 +262,7 @@ function initializeApp() {
     }
   }, true);
   
-  // 9. Initiale Seite anzeigen
+  // 10. Initiale Seite anzeigen
   // NEU: benutze getCurrentTeamInfo() statt getCurrentTeam()
   const teamInfo = App.teamSelection.getCurrentTeamInfo();
   const currentTeam = teamInfo?.id; // z.B. "team1"
@@ -184,12 +280,18 @@ function initializeApp() {
   
   App.showPage(initialPage);
   
-  // 10. Timer Persistenz - Laufende Timer aus LocalStorage wiederherstellen
+  // 11. Timer Persistenz - Laufende Timer aus LocalStorage wiederherstellen
   App.restoreActiveTimers();
   
-  // 11. Daten vor Seitenabschluss speichern
+  // 12. Daten vor Seitenabschluss speichern
   const saveAllAppData = () => {
     try {
+      // Safety: Don't save empty app state if localStorage has real data
+      const hasDataInStorage = Object.keys(localStorage).some(k => k.startsWith('sLight_'));
+      if (hasDataInStorage && (!App.data.selectedPlayers || App.data.selectedPlayers.length === 0) && Object.keys(App.data.statsData || {}).length === 0) {
+        console.warn('[App] Skipping save — app data is empty but localStorage has data');
+        return;
+      }
       App.storage.saveAll();
       // saveTeams ist optional – nur aufrufen, wenn vorhanden
       if (App.teamSelection.saveTeams) {
@@ -212,7 +314,7 @@ function initializeApp() {
   // pagehide event is more reliable on iOS/Safari for mobile devices
   window.addEventListener("pagehide", saveAllAppData);
   
-  // 12. Page Visibility API - Save all data when app goes to background
+  // 13. Page Visibility API - Save all data when app goes to background
   document.addEventListener("visibilitychange", () => {
     if (document.hidden) {
       saveAllAppData();

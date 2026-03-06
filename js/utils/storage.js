@@ -4,7 +4,9 @@ const STORAGE_PREFIX = 'sLight_';
 // Storage Utility Functions
 const AppStorage = {
   prefix: STORAGE_PREFIX,
-  
+  _autoBackupInterval: null,
+  _autoBackupStarted: false,
+
   getItem(key) {
     return localStorage.getItem(this.prefix + key);
   },
@@ -15,6 +17,26 @@ const AppStorage = {
   
   removeItem(key) {
     localStorage.removeItem(this.prefix + key);
+  },
+
+  startAutoBackup() {
+    if (this._autoBackupStarted) return;
+    this._autoBackupStarted = true;
+
+    const doBackup = () => {
+      if (typeof IDBBackup !== 'undefined') {
+        IDBBackup.saveFullBackup().catch(() => {});
+      }
+    };
+
+    this._autoBackupInterval = setInterval(doBackup, 30000);
+
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) doBackup();
+    });
+
+    window.addEventListener('pagehide', doBackup);
+    window.addEventListener('beforeunload', doBackup);
   }
 };
 
