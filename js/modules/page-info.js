@@ -13,7 +13,13 @@ Hier wählst du dein Team aus oder erstellst ein neues Team.
 • Team wählen oder bearbeiten
 • Klick auf "Select" um ein Team auszuwählen
 • Klick auf ✏️ um den Teamnamen zu bearbeiten
-• Nach der Auswahl gelangst du zur Player Selection`,
+• Nach der Auswahl gelangst du zur Player Selection
+
+💾 Backup-System:
+• Automatisches Backup alle 30 Sekunden in IndexedDB
+• Auto-Wiederherstellung beim App-Start, falls localStorage gelöscht wurde
+• 📥 Download Backup – lokale JSON-Sicherung herunterladen
+• 📤 Restore Backup – Daten aus JSON-Datei wiederherstellen`,
             
             en: `📋 Team Selection
 
@@ -22,7 +28,13 @@ Here you select your team or create a new team.
 • Choose or edit team
 • Click "Select" to choose a team
 • Click ✏️ to edit the team name
-• After selection, you proceed to Player Selection`,
+• After selection, you proceed to Player Selection
+
+💾 Backup System:
+• Auto backup every 30 seconds to IndexedDB
+• Auto-restore on app start if localStorage is cleared
+• 📥 Download Backup – save a local JSON backup
+• 📤 Restore Backup – restore data from a JSON file`,
             
             ru: `📋 Team Selection
 
@@ -31,7 +43,13 @@ Here you select your team or create a new team.
 • Выбрать или редактировать команду
 • Нажмите "Select" чтобы выбрать команду
 • Нажмите ✏️ чтобы изменить название команды
-• После выбора вы переходите к Player Selection`,
+• После выбора вы переходите к Player Selection
+
+💾 Резервное копирование:
+• Автоматическое резервное копирование каждые 30 секунд в IndexedDB
+• Авто-восстановление при запуске, если localStorage очищен
+• 📥 Download Backup – сохранить локальную резервную копию JSON
+• 📤 Restore Backup – восстановить данные из файла JSON`,
             
             sv: `📋 Team Selection
 
@@ -40,7 +58,13 @@ Här väljer du ditt lag eller skapar ett nytt lag.
 • Välj eller redigera lag
 • Klicka på "Select" för att välja ett lag
 • Klicka på ✏️ för att redigera lagnamnet
-• Efter valet går du vidare till Player Selection`,
+• Efter valet går du vidare till Player Selection
+
+💾 Backup-System:
+• Automatisk backup var 30:e sekund till IndexedDB
+• Auto-återställning vid appstart om localStorage rensats
+• 📥 Download Backup – ladda ner en lokal JSON-säkerhetskopia
+• 📤 Restore Backup – återställ data från en JSON-fil`,
             
             fi: `📋 Team Selection
 
@@ -49,7 +73,13 @@ Täällä valitset joukkueesi tai luot uuden joukkueen.
 • Valitse tai muokkaa joukkuetta
 • Napsauta "Select" valitaksesi joukkueen
 • Napsauta ✏️ muokataksesi joukkueen nimeä
-• Valinnan jälkeen siirryt Player Selectioniin`,
+• Valinnan jälkeen siirryt Player Selectioniin
+
+💾 Varmuuskopiointijärjestelmä:
+• Automaattinen varmuuskopiointi 30 sekunnin välein IndexedDB:hen
+• Automaattinen palautus sovelluksen käynnistyessä, jos localStorage on tyhjennetty
+• 📥 Download Backup – lataa paikallinen JSON-varmuuskopio
+• 📤 Restore Backup – palauta tiedot JSON-tiedostosta`,
             
             fr: `📋 Team Selection
 
@@ -58,7 +88,13 @@ Ici tu sélectionnes ton équipe ou crées une nouvelle équipe.
 • Choisis ou modifie l'équipe
 • Clique sur "Select" pour choisir une équipe
 • Clique sur ✏️ pour modifier le nom de l'équipe
-• Après la sélection, tu passes à Player Selection`
+• Après la sélection, tu passes à Player Selection
+
+💾 Système de sauvegarde :
+• Sauvegarde automatique toutes les 30 secondes dans IndexedDB
+• Restauration automatique au démarrage si le localStorage est effacé
+• 📥 Download Backup – télécharger une sauvegarde JSON locale
+• 📤 Restore Backup – restaurer les données depuis un fichier JSON`
         },
         
         'player-selection': {
