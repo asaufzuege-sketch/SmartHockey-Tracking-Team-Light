@@ -16,8 +16,8 @@
   font-size: 0.95rem;
   font-weight: 600;
   cursor: pointer;
-  background: var(--header-bg, #1E1E1E);
-  color: #fff;
+  background: #e3fba7;
+  color: #000;
   transition: opacity 0.2s;
   user-select: none;
   -webkit-user-select: none;

@@ -15,11 +15,12 @@ Hier wählst du dein Team aus oder erstellst ein neues Team.
 • Klick auf ✏️ um den Teamnamen zu bearbeiten
 • Nach der Auswahl gelangst du zur Player Selection
 
-💾 Backup-System:
-• Automatisches Backup alle 30 Sekunden in IndexedDB
-• Auto-Wiederherstellung beim App-Start, falls localStorage gelöscht wurde
-• 📥 Download Backup – lokale JSON-Sicherung herunterladen
-• 📤 Restore Backup – Daten aus JSON-Datei wiederherstellen`,
+📥 Backup & Datensicherung
+⚠️ Wir übernehmen keine Haftung für verlorene Daten.
+• **Wir empfehlen dringend, nach jedem Spiel ein Backup zu erstellen.**
+• Durch das Löschen der Browserdaten (z.B. in Google Chrome) werden sämtliche App-Daten unwiderruflich gelöscht. Unbedingt vorher ein Backup erstellen!
+• 📥 Download Backup: Alle App-Daten als JSON-Datei herunterladen. Die Datei wird im Ordner „Downloads" gespeichert.
+• 📤 Restore Backup: Eine zuvor heruntergeladene JSON-Backup-Datei hochladen und alle Daten wiederherstellen.`,
             
             en: `📋 Team Selection
 
@@ -30,11 +31,12 @@ Here you select your team or create a new team.
 • Click ✏️ to edit the team name
 • After selection, you proceed to Player Selection
 
-💾 Backup System:
-• Auto backup every 30 seconds to IndexedDB
-• Auto-restore on app start if localStorage is cleared
-• 📥 Download Backup – save a local JSON backup
-• 📤 Restore Backup – restore data from a JSON file`,
+📥 Backup & Data Protection
+⚠️ We assume no liability for lost data.
+• **We strongly recommend creating a backup after every game.**
+• Clearing browser data (e.g. in Google Chrome) will permanently delete all app data. Always create a backup before doing so!
+• 📥 Download Backup: Download all app data as a JSON file. The file is saved to the "Downloads" folder.
+• 📤 Restore Backup: Upload a previously downloaded JSON backup file to restore all data.`,
             
             ru: `📋 Team Selection
 
@@ -45,11 +47,12 @@ Here you select your team or create a new team.
 • Нажмите ✏️ чтобы изменить название команды
 • После выбора вы переходите к Player Selection
 
-💾 Резервное копирование:
-• Автоматическое резервное копирование каждые 30 секунд в IndexedDB
-• Авто-восстановление при запуске, если localStorage очищен
-• 📥 Download Backup – сохранить локальную резервную копию JSON
-• 📤 Restore Backup – восстановить данные из файла JSON`,
+📥 Резервное копирование и защита данных
+⚠️ Мы не несём ответственности за потерянные данные.
+• **Мы настоятельно рекомендуем создавать резервную копию после каждой игры.**
+• При очистке данных браузера (например, в Google Chrome) все данные приложения будут безвозвратно удалены. Обязательно создайте резервную копию перед этим!
+• 📥 Скачать Backup: Скачать все данные приложения в формате JSON. Файл сохраняется в папку «Загрузки».
+• 📤 Восстановить Backup: Загрузить ранее сохранённый JSON-файл для восстановления всех данных.`,
             
             sv: `📋 Team Selection
 
@@ -60,11 +63,12 @@ Här väljer du ditt lag eller skapar ett nytt lag.
 • Klicka på ✏️ för att redigera lagnamnet
 • Efter valet går du vidare till Player Selection
 
-💾 Backup-System:
-• Automatisk backup var 30:e sekund till IndexedDB
-• Auto-återställning vid appstart om localStorage rensats
-• 📥 Download Backup – ladda ner en lokal JSON-säkerhetskopia
-• 📤 Restore Backup – återställ data från en JSON-fil`,
+📥 Backup & Datasäkring
+⚠️ Vi tar inget ansvar för förlorad data.
+• **Vi rekommenderar starkt att du skapar en backup efter varje match.**
+• Om du rensar webbläsardata (t.ex. i Google Chrome) raderas alla appdata permanent. Skapa alltid en backup innan!
+• 📥 Download Backup: Ladda ner all appdata som en JSON-fil. Filen sparas i mappen "Nedladdningar".
+• 📤 Restore Backup: Ladda upp en tidigare nedladdad JSON-backupfil för att återställa all data.`,
             
             fi: `📋 Team Selection
 
@@ -75,11 +79,12 @@ Täällä valitset joukkueesi tai luot uuden joukkueen.
 • Napsauta ✏️ muokataksesi joukkueen nimeä
 • Valinnan jälkeen siirryt Player Selectioniin
 
-💾 Varmuuskopiointijärjestelmä:
-• Automaattinen varmuuskopiointi 30 sekunnin välein IndexedDB:hen
-• Automaattinen palautus sovelluksen käynnistyessä, jos localStorage on tyhjennetty
-• 📥 Download Backup – lataa paikallinen JSON-varmuuskopio
-• 📤 Restore Backup – palauta tiedot JSON-tiedostosta`,
+📥 Varmuuskopiointi ja tietosuoja
+⚠️ Emme vastaa kadonneista tiedoista.
+• **Suosittelemme vahvasti varmuuskopion luomista jokaisen pelin jälkeen.**
+• Selaimen tietojen tyhjentäminen (esim. Google Chromessa) poistaa kaikki sovellustiedot pysyvästi. Luo aina varmuuskopio ennen sitä!
+• 📥 Lataa varmuuskopio: Lataa kaikki sovellustiedot JSON-tiedostona. Tiedosto tallennetaan "Lataukset"-kansioon.
+• 📤 Palauta varmuuskopio: Lataa aiemmin tallennettu JSON-varmuuskopiotiedosto palauttaaksesi kaikki tiedot.`,
             
             fr: `📋 Team Selection
 
@@ -90,11 +95,12 @@ Ici tu sélectionnes ton équipe ou crées une nouvelle équipe.
 • Clique sur ✏️ pour modifier le nom de l'équipe
 • Après la sélection, tu passes à Player Selection
 
-💾 Système de sauvegarde :
-• Sauvegarde automatique toutes les 30 secondes dans IndexedDB
-• Restauration automatique au démarrage si le localStorage est effacé
-• 📥 Download Backup – télécharger une sauvegarde JSON locale
-• 📤 Restore Backup – restaurer les données depuis un fichier JSON`
+📥 Sauvegarde & Protection des données
+⚠️ Nous déclinons toute responsabilité en cas de perte de données.
+• **Nous recommandons fortement de créer une sauvegarde après chaque match.**
+• La suppression des données du navigateur (par ex. dans Google Chrome) supprimera définitivement toutes les données de l'application. Créez toujours une sauvegarde avant !
+• 📥 Télécharger Backup: Téléchargez toutes les données de l'application sous forme de fichier JSON. Le fichier est enregistré dans le dossier « Téléchargements ».
+• 📤 Restaurer Backup: Téléchargez un fichier JSON de sauvegarde précédemment téléchargé pour restaurer toutes les données.`
         },
         
         'player-selection': {
