@@ -417,6 +417,15 @@ Season
 
 ________________________________________
 
+Backup & Datensicherung
+⚠️ Wir übernehmen keine Haftung für verlorene Daten.
+• **Wir empfehlen dringend, nach jedem Spiel ein Backup zu erstellen.**
+• Durch das Löschen der Browserdaten (z.B. in Google Chrome) werden sämtliche App-Daten unwiderruflich gelöscht. Unbedingt vorher ein Backup erstellen!
+• 📥 Download Backup: Alle App-Daten als JSON-Datei herunterladen. Die Datei wird im Ordner „Downloads" gespeichert.
+• 📤 Restore Backup: Eine zuvor heruntergeladene JSON-Backup-Datei hochladen und alle Daten wiederherstellen.
+
+________________________________________
+
 Reset (irreversibel)
 • Game Center: Jede Seite Kann/muss einzeln zurückgesetzt werden`,
         
@@ -530,6 +539,15 @@ Season
 • Long-press on time cell: Additional time can be entered manually.
 • Position filter (dropdown "Pos.").
 • MVP Points/MVP = Most Valuable Player based on analyzed statistics (AI formula)
+
+________________________________________
+
+Backup & Data Protection
+⚠️ We assume no liability for lost data.
+• **We strongly recommend creating a backup after every game.**
+• Clearing browser data (e.g. in Google Chrome) will permanently delete all app data. Always create a backup before doing so!
+• 📥 Download Backup: Download all app data as a JSON file. The file is saved to the "Downloads" folder.
+• 📤 Restore Backup: Upload a previously downloaded JSON backup file and restore all data.
 
 ________________________________________
 
@@ -649,6 +667,15 @@ Season
 
 ________________________________________
 
+Резервное копирование
+⚠️ Мы не несём ответственности за потерянные данные.
+• **Мы настоятельно рекомендуем создавать резервную копию после каждой игры.**
+• Удаление данных браузера (напр. в Google Chrome) безвозвратно удалит все данные приложения. Обязательно создайте резервную копию перед этим!
+• 📥 Download Backup: Скачать все данные приложения в виде JSON-файла. Файл сохраняется в папке «Загрузки».
+• 📤 Restore Backup: Загрузить ранее скачанный JSON-файл резервной копии и восстановить все данные.
+
+________________________________________
+
 Reset (необратимо)
 • Game Center: Каждую страницу можно/нужно сбросить отдельно`,
         
@@ -762,6 +789,15 @@ Season
 • Långtryck på tidcell: Extra tid kan matas in manuellt.
 • Positionsfilter (dropdown "Pos.").
 • MVP Points/MVP = Mest värdefulla spelaren baserat på analyserad statistik (AI-formel)
+
+________________________________________
+
+Backup & Datasäkerhet
+⚠️ Vi tar inget ansvar för förlorad data.
+• **Vi rekommenderar starkt att skapa en backup efter varje match.**
+• Om webbläsardata rensas (t.ex. i Google Chrome) raderas all appdata permanent. Skapa alltid en backup innan!
+• 📥 Download Backup: Ladda ner all appdata som en JSON-fil. Filen sparas i mappen "Nedladdningar".
+• 📤 Restore Backup: Ladda upp en tidigare nedladdad JSON-backupfil och återställ all data.
 
 ________________________________________
 
@@ -881,6 +917,15 @@ Season
 
 ________________________________________
 
+Varmuuskopiointi
+⚠️ Emme ota vastuuta menetetyistä tiedoista.
+• **Suosittelemme vahvasti varmuuskopion luomista jokaisen pelin jälkeen.**
+• Selaimen tietojen tyhjentäminen (esim. Google Chromessa) poistaa kaikki sovellustiedot pysyvästi. Luo aina varmuuskopio ennen sitä!
+• 📥 Download Backup: Lataa kaikki sovellustiedot JSON-tiedostona. Tiedosto tallennetaan "Lataukset"-kansioon.
+• 📤 Restore Backup: Lataa aiemmin ladattu JSON-varmuuskopiotiedosto ja palauta kaikki tiedot.
+
+________________________________________
+
 Reset (peruuttamaton)
 • Game Center: Jokainen sivu voidaan/täytyy nollata erikseen`,
         
@@ -994,6 +1039,15 @@ Season
 • Pression longue sur la cellule de temps: Le temps supplémentaire peut être saisi manuellement.
 • Filtre de position (menu déroulant "Pos.").
 • MVP Points/MVP = Joueur le plus précieux selon les statistiques analysées (formule IA)
+
+________________________________________
+
+Sauvegarde & Protection des données
+⚠️ Nous déclinons toute responsabilité pour les données perdues.
+• **Nous recommandons fortement de créer une sauvegarde après chaque match.**
+• La suppression des données du navigateur (p.ex. dans Google Chrome) supprimera définitivement toutes les données de l'application. Créez toujours une sauvegarde avant !
+• 📥 Download Backup : Télécharger toutes les données de l'application sous forme de fichier JSON. Le fichier est enregistré dans le dossier « Téléchargements ».
+• 📤 Restore Backup : Charger un fichier de sauvegarde JSON précédemment téléchargé et restaurer toutes les données.
 
 ________________________________________
 
