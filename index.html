@@ -37,9 +37,27 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="SmartHockey">
   
-  <!-- Google AdSense -->
-  <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-5732672425319405"
-     crossorigin="anonymous"></script>
+  <!-- Google AdSense - Only load in normal browser, block in TWA/Android App -->
+  <script>
+  (function() {
+    var isTWA = document.referrer.includes('android-app://');
+    var isStandalone = navigator.standalone === true ||
+      window.matchMedia('(display-mode: standalone)').matches ||
+      window.matchMedia('(display-mode: fullscreen)').matches;
+
+    if (!isTWA && !isStandalone) {
+      // Running in normal browser - load AdSense
+      var s = document.createElement('script');
+      s.async = true;
+      s.src = 'https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-5732672425319405';
+      s.crossOrigin = 'anonymous';
+      document.head.appendChild(s);
+      console.log('[AdSense] Loaded - running in normal browser');
+    } else {
+      console.log('[AdSense] Blocked - running as TWA/standalone app (isTWA=' + isTWA + ', isStandalone=' + isStandalone + ')');
+    }
+  })();
+  </script>
   
   <!-- Favicon -->
   <link rel="icon" type="image/png" sizes="48x48" href="icons/icon-48.png">
