@@ -463,6 +463,14 @@ App.statsTable = {
 
       const applyChange = (delta) => {
         if (!App.data.statsData[playerName]) App.data.statsData[playerName] = {};
+
+        // For Goals/Shot +1: trigger workflow WITHOUT pre-incrementing.
+        // completeGoalMapWorkflow() in config.js handles the +1 on completion.
+        if (delta === 1 && (cat === "Goals" || cat === "Shot")) {
+          App.startGoalMapWorkflow(playerName, cat === "Goals" ? "goal" : "shot");
+          return;
+        }
+
         const oldVal = App.data.statsData[playerName][cat] || 0;
         let newVal = oldVal + delta;
         if (cat !== "+/-") newVal = Math.max(0, newVal);
@@ -472,11 +480,6 @@ App.statsTable = {
         td.textContent = newVal;
         td.style.color = newVal > 0 ? colors.pos : newVal < 0 ? colors.neg : colors.zero;
         this.updateTotals();
-
-        // Trigger Goal Map workflow on +1 for Goals or Shot
-        if (delta === 1 && (cat === "Goals" || cat === "Shot")) {
-          App.startGoalMapWorkflow(playerName, cat === "Goals" ? "goal" : "shot");
-        }
       };
 
       // Mobile: single tap = +1, double tap = -1
@@ -546,7 +549,7 @@ App.statsTable = {
         oppState.tapTimer = setTimeout(() => {
           oppState.tapTimer = null;
           oppState.lastTap = 0;
-          applyOpp(1);
+          App.startOpponentShotWorkflow();
         }, this.DOUBLE_TAP_DELAY);
       }, { passive: false });
 
@@ -556,7 +559,7 @@ App.statsTable = {
         oppState.dblPending = true;
         oppState.tapTimer = setTimeout(() => {
           oppState.dblPending = false;
-          applyOpp(1);
+          App.startOpponentShotWorkflow();
         }, this.DOUBLE_TAP_DELAY);
       });
 
@@ -581,7 +584,13 @@ App.statsTable = {
 
       if (c === "Shot") {
         const opp = Number(totalCell.dataset.opp) || 0;
-        totalCell.textContent = `${total} / ${opp}`;
+        const colors = App.helpers.getColorStyles();
+        const ownColor = total > opp ? colors.pos : total < opp ? colors.neg : '';
+        const oppColor = opp > total ? colors.pos : opp < total ? colors.neg : '';
+        totalCell.innerHTML =
+          `<span style="color:${ownColor}">${total}</span>` +
+          ` vs ` +
+          `<span style="color:${oppColor}">${opp}</span>`;
       } else {
         totalCell.textContent = total;
       }
