@@ -241,10 +241,10 @@ const App = {
   },
   
   // Goal Map Workflow Functions
-  // Start the red opponent-shot workflow (conceded, shot-only, no player)
-  startOpponentShotWorkflow() {
+  // Start the red opponent-shot workflow (conceded, shot-only, under goalie name)
+  startOpponentShotWorkflow(goalieName) {
     this.goalMapWorkflow.active = true;
-    this.goalMapWorkflow.playerName = null;
+    this.goalMapWorkflow.playerName = goalieName || null;
     this.goalMapWorkflow.eventType = 'shot';
     this.goalMapWorkflow.workflowType = 'conceded';
     this.goalMapWorkflow.collectedPoints = [];
@@ -352,6 +352,9 @@ const App = {
         const shotCell = this.statsTable.container.querySelector('.total-cell[data-cat="Shot"]');
         if (shotCell) {
           shotCell.dataset.opp = String(current + 1);
+        }
+        if (typeof this.statsTable.updateTotals === 'function') {
+          this.statsTable.updateTotals();
         }
       }
     }

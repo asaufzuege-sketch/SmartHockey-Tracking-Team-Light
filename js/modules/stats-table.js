@@ -549,7 +549,12 @@ App.statsTable = {
         oppState.tapTimer = setTimeout(() => {
           oppState.tapTimer = null;
           oppState.lastTap = 0;
-          App.startOpponentShotWorkflow();
+          const activeGoalie = App.goalMap?.getActiveGoalie?.() ?? null;
+          if (!activeGoalie) {
+            alert('Please select a goalie first');
+            return;
+          }
+          App.startOpponentShotWorkflow(activeGoalie.name);
         }, this.DOUBLE_TAP_DELAY);
       }, { passive: false });
 
@@ -559,7 +564,12 @@ App.statsTable = {
         oppState.dblPending = true;
         oppState.tapTimer = setTimeout(() => {
           oppState.dblPending = false;
-          App.startOpponentShotWorkflow();
+          const activeGoalie = App.goalMap?.getActiveGoalie?.() ?? null;
+          if (!activeGoalie) {
+            alert('Please select a goalie first');
+            return;
+          }
+          App.startOpponentShotWorkflow(activeGoalie.name);
         }, this.DOUBLE_TAP_DELAY);
       });
 
