@@ -466,7 +466,14 @@ App.goalMap = {
                 console.log('[Shot Workflow] Opponent shot: please click in the red zone (bottom half)');
                 return;
               }
+              // Defense-in-depth: ensure marker is assigned to the active goalie
+              const activeGoalie = this.getActiveGoalie();
+              if (!activeGoalie) {
+                alert('Please select a goalie first');
+                return;
+              }
               color = "#ff0000";
+              pointPlayer = activeGoalie.name;
             } else {
               // Own shot workflow: only allow green zone
               if (isRedZone) {
