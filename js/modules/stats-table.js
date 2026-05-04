@@ -345,4 +345,318 @@ App.statsTable = {
     const player = App.data.selectedPlayers.splice(oldIndex, 1)[0];
     App.data.selectedPlayers.splice(newIndex, 0, player);
     
-    console.log(`Player \
+    console.log(`Player moved from index ${oldIndex} to ${newIndex}`);
+    this.saveToStorage();
+    this.render();
+  },
+
+  loadTeamSpecificData() {
+    // Player order is already persisted in App.data.selectedPlayers via saveSelectedPlayers.
+    // This hook is kept for forward-compatibility / future team-specific data loading.
+  },
+
+  saveToStorage() {
+    App.storage.saveSelectedPlayers();
+  },
+
+  reset() {
+    if (!confirm("Reset all game statistics and ice times?")) return;
+
+    const teamId = App.helpers.getCurrentTeamId();
+    App.data.statsData = {};
+    App.data.playerTimes = {};
+
+    // Stop all running timers
+    Object.values(App.data.activeTimers).forEach(t => { if (t) clearInterval(t); });
+    App.data.activeTimers = {};
+
+    AppStorage.setItem(`statsData_${teamId}`, "{}");
+    AppStorage.setItem(`playerTimes_${teamId}`, "{}");
+    AppStorage.setItem(`activeTimerPlayers`, "[]");
+
+    this.render();
+  },
+
+  attachTimerToggle(nameTd, tr, timeTd, playerName) {
+    const doToggle = (e) => {
+      // Ignore clicks on the drag handle
+      if (e.target.classList.contains("drag-handle") || e.target.closest?.(".drag-handle")) return;
+
+      if (App.data.activeTimers[playerName]) {
+        clearInterval(App.data.activeTimers[playerName]);
+        delete App.data.activeTimers[playerName];
+        tr.style.background = "";
+        nameTd.style.background = "";
+        App.saveActiveTimersState();
+      } else {
+        App.startPlayerTimer(playerName);
+      }
+    };
+
+    nameTd.addEventListener("click", doToggle);
+    nameTd.addEventListener("touchend", (e) => {
+      if (e.target.classList.contains("drag-handle") || e.target.closest?.(".drag-handle")) return;
+      e.preventDefault();
+      doToggle(e);
+    }, { passive: false });
+  },
+
+  attachTimeClickHandlers(timeTd, playerName) {
+    const state = { lastTap: 0, tapTimer: null };
+
+    const handleTap = (isDouble) => {
+      if (isDouble) {
+        App.data.playerTimes[playerName] = Math.max(0, (App.data.playerTimes[playerName] || 0) - 10);
+      } else {
+        App.data.playerTimes[playerName] = (App.data.playerTimes[playerName] || 0) + 10;
+      }
+      App.storage.savePlayerTimes();
+      timeTd.textContent = App.helpers.formatTimeMMSS(App.data.playerTimes[playerName]);
+      this.updateIceTimeColors();
+    };
+
+    // Mobile touch: single tap = +10s, double tap = -10s
+    timeTd.addEventListener("touchend", (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const now = Date.now();
+      if (state.lastTap > 0 && now - state.lastTap < this.DOUBLE_TAP_DELAY) {
+        clearTimeout(state.tapTimer);
+        state.tapTimer = null;
+        state.lastTap = 0;
+        handleTap(true);
+        return;
+      }
+      state.lastTap = now;
+      state.tapTimer = setTimeout(() => {
+        state.tapTimer = null;
+        state.lastTap = 0;
+        handleTap(false);
+      }, this.DOUBLE_TAP_DELAY);
+    }, { passive: false });
+
+    // Desktop: click = +10s, dblclick = -10s
+    timeTd.addEventListener("click", (e) => {
+      if (state.lastTap > 0 && Date.now() - state.lastTap < 500) return; // suppress after touch
+      if (state.dblPending) return;
+      state.dblPending = true;
+      state.tapTimer = setTimeout(() => {
+        state.dblPending = false;
+        handleTap(false);
+      }, this.DOUBLE_TAP_DELAY);
+    });
+
+    timeTd.addEventListener("dblclick", (e) => {
+      if (state.tapTimer) { clearTimeout(state.tapTimer); state.tapTimer = null; }
+      state.dblPending = false;
+      handleTap(true);
+    });
+  },
+
+  attachValueClickHandlers() {
+    // --- Player stat cells ---
+    const statCells = this.container.querySelectorAll("td[data-player][data-cat]");
+    statCells.forEach(td => {
+      const playerName = td.dataset.player;
+      const cat = td.dataset.cat;
+      const state = { lastTap: 0, tapTimer: null };
+
+      const applyChange = (delta) => {
+        if (!App.data.statsData[playerName]) App.data.statsData[playerName] = {};
+        const oldVal = App.data.statsData[playerName][cat] || 0;
+        let newVal = oldVal + delta;
+        if (cat !== "+/-") newVal = Math.max(0, newVal);
+        App.data.statsData[playerName][cat] = newVal;
+        App.storage.saveStatsData();
+        const colors = App.helpers.getColorStyles();
+        td.textContent = newVal;
+        td.style.color = newVal > 0 ? colors.pos : newVal < 0 ? colors.neg : colors.zero;
+        this.updateTotals();
+
+        // Trigger Goal Map workflow on +1 for Goals or Shot
+        if (delta === 1 && (cat === "Goals" || cat === "Shot")) {
+          App.startGoalMapWorkflow(playerName, cat === "Goals" ? "goal" : "shot");
+        }
+      };
+
+      // Mobile: single tap = +1, double tap = -1
+      td.addEventListener("touchend", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const now = Date.now();
+        if (state.lastTap > 0 && now - state.lastTap < this.DOUBLE_TAP_DELAY) {
+          clearTimeout(state.tapTimer);
+          state.tapTimer = null;
+          state.lastTap = 0;
+          applyChange(-1);
+          return;
+        }
+        state.lastTap = now;
+        state.tapTimer = setTimeout(() => {
+          state.tapTimer = null;
+          state.lastTap = 0;
+          applyChange(1);
+        }, this.DOUBLE_TAP_DELAY);
+      }, { passive: false });
+
+      // Desktop: click = +1, dblclick = -1
+      td.addEventListener("click", (e) => {
+        if (state.lastTap > 0 && Date.now() - state.lastTap < 500) return;
+        if (state.dblPending) return;
+        state.dblPending = true;
+        state.tapTimer = setTimeout(() => {
+          state.dblPending = false;
+          applyChange(1);
+        }, this.DOUBLE_TAP_DELAY);
+      });
+
+      td.addEventListener("dblclick", (e) => {
+        if (state.tapTimer) { clearTimeout(state.tapTimer); state.tapTimer = null; }
+        state.dblPending = false;
+        applyChange(-1);
+      });
+    });
+
+    // --- Opponent shots: total row Shot cell ---
+    const shotTotalCell = this.container.querySelector(".total-cell[data-cat='Shot']");
+    if (shotTotalCell) {
+      const oppState = { lastTap: 0, tapTimer: null };
+      const teamId = App.helpers.getCurrentTeamId();
+
+      const applyOpp = (delta) => {
+        const current = Number(shotTotalCell.dataset.opp) || 0;
+        const next = Math.max(0, current + delta);
+        shotTotalCell.dataset.opp = String(next);
+        AppStorage.setItem(`opponentShots_${teamId}`, String(next));
+        this.updateTotals();
+      };
+
+      shotTotalCell.addEventListener("touchend", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const now = Date.now();
+        if (oppState.lastTap > 0 && now - oppState.lastTap < this.DOUBLE_TAP_DELAY) {
+          clearTimeout(oppState.tapTimer);
+          oppState.tapTimer = null;
+          oppState.lastTap = 0;
+          applyOpp(-1);
+          return;
+        }
+        oppState.lastTap = now;
+        oppState.tapTimer = setTimeout(() => {
+          oppState.tapTimer = null;
+          oppState.lastTap = 0;
+          applyOpp(1);
+        }, this.DOUBLE_TAP_DELAY);
+      }, { passive: false });
+
+      shotTotalCell.addEventListener("click", (e) => {
+        if (oppState.lastTap > 0 && Date.now() - oppState.lastTap < 500) return;
+        if (oppState.dblPending) return;
+        oppState.dblPending = true;
+        oppState.tapTimer = setTimeout(() => {
+          oppState.dblPending = false;
+          applyOpp(1);
+        }, this.DOUBLE_TAP_DELAY);
+      });
+
+      shotTotalCell.addEventListener("dblclick", (e) => {
+        if (oppState.tapTimer) { clearTimeout(oppState.tapTimer); oppState.tapTimer = null; }
+        oppState.dblPending = false;
+        applyOpp(-1);
+      });
+    }
+  },
+
+  updateTotals() {
+    if (!this.container) return;
+
+    const fieldPlayers = App.data.selectedPlayers.filter(p => p.position !== "G" && !p.isGoalie);
+
+    App.data.categories.forEach(c => {
+      const totalCell = this.container.querySelector(`.total-cell[data-cat="${c}"]`);
+      if (!totalCell) return;
+
+      const total = fieldPlayers.reduce((sum, p) => sum + (App.data.statsData[p.name]?.[c] || 0), 0);
+
+      if (c === "Shot") {
+        const opp = Number(totalCell.dataset.opp) || 0;
+        totalCell.textContent = `${total} / ${opp}`;
+      } else {
+        totalCell.textContent = total;
+      }
+    });
+
+    // Ice time total
+    const timeTotal = this.container.querySelector(".total-cell[data-cat='Time']");
+    if (timeTotal) {
+      const totalSec = fieldPlayers.reduce((sum, p) => sum + (App.data.playerTimes[p.name] || 0), 0);
+      timeTotal.textContent = App.helpers.formatTimeMMSS(totalSec);
+    }
+  },
+
+  updateIceTimeColors() {
+    if (!this.container) return;
+
+    // Identify goalies from App.data.selectedPlayers
+    const goalieNames = new Set(
+      App.data.selectedPlayers
+        .filter(p => p.position === "G" || p.isGoalie)
+        .map(p => p.name)
+    );
+
+    // Collect all ice-time cells in the DOM
+    const allCells = Array.from(this.container.querySelectorAll(".ice-time-cell[data-player]"));
+
+    // Separate field-player cells from goalie cells.
+    // Goalie cells are reset to neutral background so they are never colored.
+    const fieldCells = [];
+    allCells.forEach(cell => {
+      if (goalieNames.has(cell.dataset.player)) {
+        // Reset any residual coloring on goalie cells
+        cell.style.background = "";
+        cell.style.backgroundColor = "";
+      } else {
+        fieldCells.push(cell);
+      }
+    });
+
+    const n = fieldCells.length;
+    if (n === 0) return;
+
+    // Build sorted array of { cell, seconds } for field players only
+    const entries = fieldCells.map(cell => {
+      const secs = App.data.playerTimes[cell.dataset.player] || 0;
+      return { cell, secs };
+    });
+
+    // Sort ascending by ice time
+    const sorted = entries.slice().sort((a, b) => a.secs - b.secs);
+
+    // Determine top-N and bottom-N (floor(n/2) each)
+    const half = Math.floor(n / 2);
+
+    // Clear all field-player ice-time backgrounds first
+    fieldCells.forEach(cell => {
+      cell.style.background = "";
+      cell.style.backgroundColor = "";
+    });
+
+    if (half === 0) return;
+
+    const bottomColor = getComputedStyle(document.documentElement)
+      .getPropertyValue("--ice-bottom").trim() || "#ff4c4c";
+    const topColor = getComputedStyle(document.documentElement)
+      .getPropertyValue("--ice-top").trim() || "#00c06f";
+
+    // Bottom-N (lowest ice times) → red
+    for (let i = 0; i < half; i++) {
+      sorted[i].cell.style.backgroundColor = bottomColor;
+    }
+
+    // Top-N (highest ice times) → green
+    for (let i = n - half; i < n; i++) {
+      sorted[i].cell.style.backgroundColor = topColor;
+    }
+  }
+};
