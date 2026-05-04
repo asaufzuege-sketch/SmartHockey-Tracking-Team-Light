@@ -609,13 +609,12 @@ App.statsTable = {
     const allCells = Array.from(this.container.querySelectorAll(".ice-time-cell[data-player]"));
 
     // Separate field-player cells from goalie cells.
-    // Goalie cells are reset to neutral background so they are never colored.
+    // Goalie cells are reset to neutral text color so they are never colored.
     const fieldCells = [];
     allCells.forEach(cell => {
       if (goalieNames.has(cell.dataset.player)) {
-        // Reset any residual coloring on goalie cells
-        cell.style.background = "";
-        cell.style.backgroundColor = "";
+        // Reset any residual text coloring on goalie cells
+        cell.style.color = "";
       } else {
         fieldCells.push(cell);
       }
@@ -636,10 +635,9 @@ App.statsTable = {
     // Determine top-N and bottom-N (floor(n/2) each)
     const half = Math.floor(n / 2);
 
-    // Clear all field-player ice-time backgrounds first
+    // Reset all field-player ice-time text colors first
     fieldCells.forEach(cell => {
-      cell.style.background = "";
-      cell.style.backgroundColor = "";
+      cell.style.color = "";
     });
 
     if (half === 0) return;
@@ -649,14 +647,14 @@ App.statsTable = {
     const topColor = getComputedStyle(document.documentElement)
       .getPropertyValue("--ice-top").trim() || "#00c06f";
 
-    // Bottom-N (lowest ice times) → red
+    // Bottom-N (lowest ice times) → red text
     for (let i = 0; i < half; i++) {
-      sorted[i].cell.style.backgroundColor = bottomColor;
+      sorted[i].cell.style.color = bottomColor;
     }
 
-    // Top-N (highest ice times) → green
+    // Top-N (highest ice times) → green text
     for (let i = n - half; i < n; i++) {
-      sorted[i].cell.style.backgroundColor = topColor;
+      sorted[i].cell.style.color = topColor;
     }
   }
 };
