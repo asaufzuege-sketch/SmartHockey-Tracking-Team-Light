@@ -341,6 +341,28 @@ const App = {
       }
       
       AppStorage.setItem(`statsData_${teamId}`, JSON.stringify(this.data.statsData));
+
+      // Refresh DOM so Game Center shows the updated values immediately
+      if (this.statsTable && this.statsTable.container) {
+        const colors = App.helpers.getColorStyles();
+        if (eventType === 'goal') {
+          const goalCell = this.statsTable.container.querySelector(`td[data-player="${playerName}"][data-cat="Goals"]`);
+          if (goalCell) {
+            const val = this.data.statsData[playerName]['Goals'];
+            goalCell.textContent = val;
+            goalCell.style.color = val > 0 ? colors.pos : colors.zero;
+          }
+        }
+        const shotCell = this.statsTable.container.querySelector(`td[data-player="${playerName}"][data-cat="Shot"]`);
+        if (shotCell) {
+          const val = this.data.statsData[playerName]['Shot'];
+          shotCell.textContent = val;
+          shotCell.style.color = val > 0 ? colors.pos : colors.zero;
+        }
+        if (typeof this.statsTable.updateTotals === 'function') {
+          this.statsTable.updateTotals();
+        }
+      }
     }
 
     // Increment opponent-shots counter for conceded shot workflow
