@@ -241,6 +241,20 @@ const App = {
   },
   
   // Goal Map Workflow Functions
+  // Start the red opponent-shot workflow (conceded, shot-only, no player)
+  startOpponentShotWorkflow() {
+    this.goalMapWorkflow.active = true;
+    this.goalMapWorkflow.playerName = null;
+    this.goalMapWorkflow.eventType = 'shot';
+    this.goalMapWorkflow.workflowType = 'conceded';
+    this.goalMapWorkflow.collectedPoints = [];
+    this.goalMapWorkflow.requiredPoints = 1;
+    this.goalMapWorkflow.pointTypes = ['field'];
+
+    console.log('Starting Opponent Shot (conceded) workflow');
+    this.showPage('torbild');
+  },
+
   startGoalMapWorkflow(playerName, eventType) {
     this.goalMapWorkflow.active = true;
     this.goalMapWorkflow.playerName = playerName;
@@ -327,6 +341,19 @@ const App = {
       }
       
       AppStorage.setItem(`statsData_${teamId}`, JSON.stringify(this.data.statsData));
+    }
+
+    // Increment opponent-shots counter for conceded shot workflow
+    if (workflowType === 'conceded' && eventType === 'shot') {
+      const current = Number(AppStorage.getItem(`opponentShots_${teamId}`)) || 0;
+      AppStorage.setItem(`opponentShots_${teamId}`, String(current + 1));
+      // Sync the in-DOM dataset so updateTotals() picks up the new value
+      if (this.statsTable && this.statsTable.container) {
+        const shotCell = this.statsTable.container.querySelector('.total-cell[data-cat="Shot"]');
+        if (shotCell) {
+          shotCell.dataset.opp = String(current + 1);
+        }
+      }
     }
     
     // Save goalMapData for both scored and conceded

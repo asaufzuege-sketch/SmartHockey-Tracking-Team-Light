@@ -249,7 +249,7 @@ App.goalMap = {
         if (isShotWorkflow) {
           const isFieldBox = box.classList.contains("field-box");
           if (!isFieldBox) {
-            console.log('[Shot Workflow] Please click in the field (green zone)');
+            console.log('[Shot Workflow] Please click in the field');
             return;
           }
         }
@@ -458,15 +458,23 @@ App.goalMap = {
             color = pos.yPctImage > this.VERTICAL_SPLIT_THRESHOLD ? "#ff0000" : "#00ff66";
           }
           
-          // SHOT WORKFLOW: Only allow green zone (top half)
+          // SHOT WORKFLOW: own shot → green zone; opponent shot (conceded) → red zone
           if (workflowActive && eventType === 'shot') {
-            if (isRedZone) {
-              console.log('[Shot Workflow] Please click in the green zone (top half)');
-              return;
+            if (workflowType === 'conceded') {
+              // Opponent shot workflow: only allow red zone
+              if (!isRedZone) {
+                console.log('[Shot Workflow] Opponent shot: please click in the red zone (bottom half)');
+                return;
+              }
+              color = "#ff0000";
+            } else {
+              // Own shot workflow: only allow green zone
+              if (isRedZone) {
+                console.log('[Shot Workflow] Please click in the green zone (top half)');
+                return;
+              }
+              color = "#00ff66";
             }
-            
-            // Force green color for shot workflow
-            color = "#00ff66";
             
             App.markerHandler.createMarkerPercent(
               pos.xPctImage,
@@ -478,7 +486,7 @@ App.goalMap = {
             );
             
             // Set data-zone attribute for shot workflow
-            setMarkerZone(box, 'green');
+            setMarkerZone(box, workflowType === 'conceded' ? 'red' : 'green');
             
             this.saveMarkers();
             
