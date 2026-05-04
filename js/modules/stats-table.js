@@ -608,8 +608,8 @@ App.statsTable = {
     // Collect all ice-time cells in the DOM
     const allCells = Array.from(this.container.querySelectorAll(".ice-time-cell[data-player]"));
 
-    // Separate field-player cells from goalie cells (goalies should not be in DOM,
-    // but reset any that might be from a previous render)
+    // Separate field-player cells from goalie cells.
+    // Goalie cells are reset to neutral background so they are never colored.
     const fieldCells = [];
     allCells.forEach(cell => {
       if (goalieNames.has(cell.dataset.player)) {
