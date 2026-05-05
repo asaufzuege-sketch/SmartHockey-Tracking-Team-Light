@@ -481,6 +481,8 @@ App.goalMap = {
                 return;
               }
               color = "#00ff66";
+              // Mark as scored so completeGoalMapWorkflow() increments Shot
+              App.goalMapWorkflow.workflowType = 'scored';
             }
             
             App.markerHandler.createMarkerPercent(
