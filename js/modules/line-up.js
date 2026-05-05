@@ -6,6 +6,7 @@ App.lineUp = {
   currentPosition: null,
   lineUpData: {},
   playersOut: [],
+  playerOutSnapshots: {},
   currentMode: 'normal', // 'normal', 'power', 'manuell'
   modes: ['normal', 'power', 'manuell'],
   goaliePositions: ['G', 'GK', 'GOALIE'], // Positions that identify goalies
@@ -38,6 +39,13 @@ App.lineUp = {
       this.playersOut = savedPlayersOut ? JSON.parse(savedPlayersOut) : [];
     } catch (e) {
       this.playersOut = [];
+    }
+    
+    try {
+      const savedSnapshots = AppStorage.getItem(`playerOutSnapshots_${currentTeamId}`);
+      this.playerOutSnapshots = savedSnapshots ? JSON.parse(savedSnapshots) : {};
+    } catch (e) {
+      this.playerOutSnapshots = {};
     }
   },
   
@@ -318,32 +326,77 @@ App.lineUp = {
   
   togglePlayerOut(playerName) {
     const index = this.playersOut.indexOf(playerName);
-    if (index > -1) {
-      // Reactivate player
+    const wasOut = index > -1;
+
+    if (wasOut) {
+      // === REACTIVATION ===
       this.playersOut.splice(index, 1);
+      this.savePlayersOut();
+
+      // 1. Restore manuell storage via snapshot (or fallback to first empty slot)
+      const teamId = App.helpers.getCurrentTeamId();
+      let manuellData = {};
+      try { manuellData = JSON.parse(AppStorage.getItem(`lineUpData_manuell_${teamId}`) || '{}'); } catch (e) {}
+
+      const snapshot = this.playerOutSnapshots[playerName]?.manuell;
+      if (snapshot && Object.keys(snapshot).length > 0) {
+        let restoredAny = false;
+        Object.keys(snapshot).forEach(posKey => {
+          if (!manuellData[posKey]) {
+            manuellData[posKey] = playerName;
+            restoredAny = true;
+          }
+        });
+        if (!restoredAny) this.fillFirstEmptySlotForPlayerInData(playerName, manuellData);
+      } else {
+        this.fillFirstEmptySlotForPlayerInData(playerName, manuellData);
+      }
+      AppStorage.setItem(`lineUpData_manuell_${teamId}`, JSON.stringify(manuellData));
+
+      // 2. Regenerate power + normal storages with updated player list
+      this.regenerateAutoFillStoragesExceptManuell();
+
+      // 3. Clean up snapshot
+      delete this.playerOutSnapshots[playerName];
+      this.savePlayerOutSnapshots();
+
+      // 4. Load current mode data and re-render
+      this.loadDataForMode(this.currentMode);
+      this.renderPlayerOutList();
+      this.updatePlayerOutButton();
+      this.render();
+
     } else {
-      // Mark as OUT
+      // === MARK AS OUT ===
+
+      // Take manuell snapshot before removing the player
+      const teamId = App.helpers.getCurrentTeamId();
+      let manuellData = {};
+      try { manuellData = JSON.parse(AppStorage.getItem(`lineUpData_manuell_${teamId}`) || '{}'); } catch (e) {}
+
+      const playerPositions = {};
+      Object.entries(manuellData).forEach(([posKey, name]) => {
+        if (name === playerName) playerPositions[posKey] = name;
+      });
+
+      this.playerOutSnapshots[playerName] = { manuell: playerPositions };
+      this.savePlayerOutSnapshots();
+
       this.playersOut.push(playerName);
+      this.savePlayersOut();
+      this.renderPlayerOutList();
+      this.updatePlayerOutButton();
+
+      // Remove player from all mode storages
+      this.removePlayerFromAllModes(playerName);
+
+      // Keep power + normal storages in sync (important when manuell is active)
+      this.regenerateAutoFillStoragesExceptManuell();
+
+      // Load current mode data and re-render
+      this.loadDataForMode(this.currentMode);
+      this.render();
     }
-    
-    this.savePlayersOut();
-    this.renderPlayerOutList();
-    this.updatePlayerOutButton();
-    
-    // Gesperrten Spieler aus ALLEN Modi entfernen
-    this.removePlayerFromAllModes(playerName);
-    
-    // Im POWER Modus: Aufstellung neu generieren
-    if (this.currentMode === 'power') {
-      this.autoFillPowerMode();
-    }
-    
-    // Im BALANCED Modus: PP und BP neu berechnen
-    if (this.currentMode === 'normal') {
-      this.calculateSpecialTeams();
-    }
-    
-    this.render(); // Re-render LINE UP to update blocked players
   },
   
   removePlayerFromAllModes(playerName) {
@@ -383,6 +436,73 @@ App.lineUp = {
       }
     });
   },
+
+  savePlayerOutSnapshots() {
+    const currentTeamId = App.helpers.getCurrentTeamId();
+    AppStorage.setItem(`playerOutSnapshots_${currentTeamId}`, JSON.stringify(this.playerOutSnapshots || {}));
+  },
+
+  /**
+   * Fills the first empty lineup slot in the given data object that matches the player's position.
+   * Defense players → DL/DR pair slots; offense (C/W) → C/LW/RW line slots; no position → offense then defense.
+   *
+   * @param {string} playerName - Name of the player to place
+   * @param {Object} dataObj    - The lineup data object to modify in-place
+   * @returns {boolean} true if a slot was found and filled, false otherwise
+   */
+  fillFirstEmptySlotForPlayerInData(playerName, dataObj) {
+    const players = this.getAvailablePlayers();
+    const player = players.find(p => p.name === playerName);
+    const pos = (player?.position || '').toUpperCase();
+
+    const offenseSlots = [
+      'C_line1', 'LW_line1', 'RW_line1',
+      'C_line2', 'LW_line2', 'RW_line2',
+      'C_line3', 'LW_line3', 'RW_line3',
+      'C_line4', 'LW_line4', 'RW_line4'
+    ];
+    const defenseSlots = [
+      'DL_pair1', 'DR_pair1',
+      'DL_pair2', 'DR_pair2',
+      'DL_pair3', 'DR_pair3'
+    ];
+
+    let slots;
+    if (pos === 'D') {
+      slots = [...defenseSlots, ...offenseSlots];
+    } else {
+      slots = [...offenseSlots, ...defenseSlots];
+    }
+
+    for (const slot of slots) {
+      if (!dataObj[slot]) {
+        dataObj[slot] = playerName;
+        return true;
+      }
+    }
+    return false;
+  },
+
+  /**
+   * Regenerates the power and normal mode storages by temporarily switching currentMode
+   * and running the respective auto-fill functions. Manuell storage is not touched.
+   * After this call, currentMode and lineUpData are both restored to their original state;
+   * callers should still call loadDataForMode(this.currentMode) to reload fresh, clean data.
+   */
+  regenerateAutoFillStoragesExceptManuell() {
+    const originalMode = this.currentMode;
+    const originalData = this.lineUpData;
+
+    this.currentMode = 'power';
+    this.autoFillPowerMode(); // resets this.lineUpData and saves to lineUpData_power_*
+
+    this.currentMode = 'normal';
+    this.autoFillNormalMode(); // resets this.lineUpData and saves to lineUpData_normal_*
+
+    this.currentMode = originalMode;
+    this.lineUpData = originalData;
+  },
+
   
   generatePositionKey(posBtn) {
     const pos = posBtn.dataset.pos;
