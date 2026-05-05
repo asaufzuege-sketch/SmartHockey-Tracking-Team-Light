@@ -219,17 +219,27 @@ App.playerSelection = {
   saveCurrentState() {
     const currentTeamId = App.helpers.getCurrentTeamId();
     const savedPlayersKey = `playerSelectionData_${currentTeamId}`;
-    
-    const players = [];
+
+    // Load previously saved player list for rename detection
+    let previousPlayers = [];
+    try {
+      previousPlayers = JSON.parse(AppStorage.getItem(savedPlayersKey) || "[]");
+    } catch (e) {
+      previousPlayers = [];
+    }
+
     const items = this.container.querySelectorAll("li");
-    
-    items.forEach((li, idx) => {
+    const players = [];
+    // Collect new state first (with DOM references for revert)
+    const itemList = Array.from(items);
+
+    itemList.forEach((li) => {
       const checkbox = li.querySelector(".player-checkbox");
       const numInput = li.querySelector(".num-input");
       const nameInput = li.querySelector(".name-input");
       const posSelect = li.querySelector(".pos-select");
       const posFixed = li.querySelector(".pos-fixed");
-      
+
       players.push({
         number: numInput ? numInput.value.trim() : "",
         name: nameInput ? nameInput.value.trim() : "",
@@ -237,8 +247,255 @@ App.playerSelection = {
         active: checkbox ? checkbox.checked : false
       });
     });
-    
+
+    // Load season and stats data once outside the loop (read-only for conflict checks)
+    let seasonData = {};
+    try {
+      seasonData = JSON.parse(AppStorage.getItem(`seasonData_${currentTeamId}`) || "{}");
+    } catch (e) { seasonData = {}; }
+    let statsData = {};
+    try {
+      statsData = JSON.parse(AppStorage.getItem(`statsData_${currentTeamId}`) || "{}");
+    } catch (e) { statsData = {}; }
+
+    // Rename detection: compare by slot index
+    for (let i = 0; i < players.length; i++) {
+      const oldName = previousPlayers[i]?.name?.trim() || "";
+      const newName = players[i].name;
+
+      if (!oldName || !newName || oldName === newName) continue;
+
+      // Pre-check 1: season-frozen – reject if oldName exists in seasonData
+      if (Object.prototype.hasOwnProperty.call(seasonData, oldName)) {
+        alert(`"${oldName}" wurde bereits in eine Saison exportiert und kann nicht umbenannt werden.`);
+        // Revert the input field
+        const li = itemList[i];
+        const nameInput = li ? li.querySelector(".name-input") : null;
+        if (nameInput) nameInput.value = oldName;
+        players[i].name = oldName;
+        continue;
+      }
+
+      // Pre-check 2: name conflict – reject if newName already exists
+      const nameExistsInList = players.some((p, j) => j !== i && p.name && p.name === newName);
+      const nameExistsInStats = Object.prototype.hasOwnProperty.call(statsData, newName);
+      const nameExistsInSeason = Object.prototype.hasOwnProperty.call(seasonData, newName);
+
+      if (nameExistsInList || nameExistsInStats || nameExistsInSeason) {
+        alert(`"${newName}" existiert bereits. Bitte einen anderen Namen wählen.`);
+        const li = itemList[i];
+        const nameInput = li ? li.querySelector(".name-input") : null;
+        if (nameInput) nameInput.value = oldName;
+        players[i].name = oldName;
+        continue;
+      }
+
+      // Migrate all storage keys for this rename
+      this.migratePlayerName(oldName, newName, currentTeamId);
+    }
+
     AppStorage.setItem(savedPlayersKey, JSON.stringify(players));
+  },
+
+  migratePlayerName(oldName, newName, teamId) {
+    // --- lineUpData_normal, lineUpData_power, lineUpData_manuell: slot values ---
+    ['normal', 'power', 'manuell'].forEach(mode => {
+      const key = `lineUpData_${mode}_${teamId}`;
+      try {
+        const data = JSON.parse(AppStorage.getItem(key) || "{}");
+        let changed = false;
+        Object.keys(data).forEach(slot => {
+          if (data[slot] === oldName) {
+            data[slot] = newName;
+            changed = true;
+          }
+        });
+        if (changed) AppStorage.setItem(key, JSON.stringify(data));
+      } catch (e) { /* skip on error */ }
+    });
+
+    // --- statsData: top-level key ---
+    try {
+      const data = JSON.parse(AppStorage.getItem(`statsData_${teamId}`) || "{}");
+      if (Object.prototype.hasOwnProperty.call(data, oldName)) {
+        data[newName] = data[oldName];
+        delete data[oldName];
+        AppStorage.setItem(`statsData_${teamId}`, JSON.stringify(data));
+        // In-memory
+        if (App.data.statsData && Object.prototype.hasOwnProperty.call(App.data.statsData, oldName)) {
+          App.data.statsData[newName] = App.data.statsData[oldName];
+          delete App.data.statsData[oldName];
+        }
+      }
+    } catch (e) { /* skip */ }
+
+    // --- playerTimes: top-level key ---
+    try {
+      const data = JSON.parse(AppStorage.getItem(`playerTimes_${teamId}`) || "{}");
+      if (Object.prototype.hasOwnProperty.call(data, oldName)) {
+        data[newName] = data[oldName];
+        delete data[oldName];
+        AppStorage.setItem(`playerTimes_${teamId}`, JSON.stringify(data));
+        // In-memory
+        if (App.data.playerTimes && Object.prototype.hasOwnProperty.call(App.data.playerTimes, oldName)) {
+          App.data.playerTimes[newName] = App.data.playerTimes[oldName];
+          delete App.data.playerTimes[oldName];
+        }
+      }
+    } catch (e) { /* skip */ }
+
+    // --- playersOut: array element ---
+    try {
+      const data = JSON.parse(AppStorage.getItem(`playersOut_${teamId}`) || "[]");
+      const idx = data.indexOf(oldName);
+      if (idx !== -1) {
+        data[idx] = newName;
+        AppStorage.setItem(`playersOut_${teamId}`, JSON.stringify(data));
+        // In-memory
+        if (App.lineUp && Array.isArray(App.lineUp.playersOut)) {
+          const memIdx = App.lineUp.playersOut.indexOf(oldName);
+          if (memIdx !== -1) App.lineUp.playersOut[memIdx] = newName;
+        }
+      }
+    } catch (e) { /* skip */ }
+
+    // --- playerOutSnapshots: top-level key + manuell sub-object values ---
+    try {
+      const data = JSON.parse(AppStorage.getItem(`playerOutSnapshots_${teamId}`) || "{}");
+      let changed = false;
+      // Capture keys before any mutation to avoid processing the renamed key twice
+      const snapshotKeys = Object.keys(data);
+      if (Object.prototype.hasOwnProperty.call(data, oldName)) {
+        data[newName] = data[oldName];
+        delete data[oldName];
+        changed = true;
+      }
+      // Also rename any slot values inside manuell sub-objects (use captured keys)
+      snapshotKeys.forEach(player => {
+        // Skip the key that was just renamed (it is now stored under newName)
+        const currentKey = player === oldName ? newName : player;
+        if (data[currentKey] && data[currentKey].manuell) {
+          Object.keys(data[currentKey].manuell).forEach(slot => {
+            if (data[currentKey].manuell[slot] === oldName) {
+              data[currentKey].manuell[slot] = newName;
+              changed = true;
+            }
+          });
+        }
+      });
+      if (changed) {
+        AppStorage.setItem(`playerOutSnapshots_${teamId}`, JSON.stringify(data));
+        // In-memory
+        if (App.lineUp && App.lineUp.playerOutSnapshots) {
+          if (Object.prototype.hasOwnProperty.call(App.lineUp.playerOutSnapshots, oldName)) {
+            App.lineUp.playerOutSnapshots[newName] = App.lineUp.playerOutSnapshots[oldName];
+            delete App.lineUp.playerOutSnapshots[oldName];
+          }
+          Object.keys(App.lineUp.playerOutSnapshots).forEach(player => {
+            const snap = App.lineUp.playerOutSnapshots[player];
+            if (snap && snap.manuell) {
+              Object.keys(snap.manuell).forEach(slot => {
+                if (snap.manuell[slot] === oldName) snap.manuell[slot] = newName;
+              });
+            }
+          });
+        }
+      }
+    } catch (e) { /* skip */ }
+
+    // --- goalMapData: top-level key ---
+    try {
+      const data = JSON.parse(AppStorage.getItem(`goalMapData_${teamId}`) || "{}");
+      if (Object.prototype.hasOwnProperty.call(data, oldName)) {
+        data[newName] = data[oldName];
+        delete data[oldName];
+        AppStorage.setItem(`goalMapData_${teamId}`, JSON.stringify(data));
+        // In-memory
+        if (App.data.goalMapData && Object.prototype.hasOwnProperty.call(App.data.goalMapData, oldName)) {
+          App.data.goalMapData[newName] = App.data.goalMapData[oldName];
+          delete App.data.goalMapData[oldName];
+        }
+      }
+    } catch (e) { /* skip */ }
+
+    // --- goalMapMarkers: marker.player field ---
+    try {
+      const data = JSON.parse(AppStorage.getItem(`goalMapMarkers_${teamId}`) || "null");
+      if (Array.isArray(data)) {
+        let changed = false;
+        data.forEach(boxMarkers => {
+          if (Array.isArray(boxMarkers)) {
+            boxMarkers.forEach(marker => {
+              if (marker && marker.player === oldName) {
+                marker.player = newName;
+                changed = true;
+              }
+            });
+          }
+        });
+        if (changed) AppStorage.setItem(`goalMapMarkers_${teamId}`, JSON.stringify(data));
+      }
+    } catch (e) { /* skip */ }
+
+    // --- goalMapPlayerFilter: string ---
+    try {
+      const val = AppStorage.getItem(`goalMapPlayerFilter_${teamId}`);
+      if (val === oldName) AppStorage.setItem(`goalMapPlayerFilter_${teamId}`, newName);
+    } catch (e) { /* skip */ }
+
+    // --- seasonMapPlayerFilter: string ---
+    try {
+      const val = AppStorage.getItem(`seasonMapPlayerFilter_${teamId}`);
+      if (val === oldName) AppStorage.setItem(`seasonMapPlayerFilter_${teamId}`, newName);
+    } catch (e) { /* skip */ }
+
+    // --- goalMapActiveGoalie: string ---
+    try {
+      const val = AppStorage.getItem(`goalMapActiveGoalie_${teamId}`);
+      if (val === oldName) AppStorage.setItem(`goalMapActiveGoalie_${teamId}`, newName);
+    } catch (e) { /* skip */ }
+
+    // --- selectedPlayers: array element .name ---
+    try {
+      const data = JSON.parse(AppStorage.getItem(`selectedPlayers_${teamId}`) || "[]");
+      let changed = false;
+      data.forEach(p => {
+        if (p && p.name === oldName) {
+          p.name = newName;
+          changed = true;
+        }
+      });
+      if (changed) {
+        AppStorage.setItem(`selectedPlayers_${teamId}`, JSON.stringify(data));
+        // In-memory
+        if (Array.isArray(App.data.selectedPlayers)) {
+          App.data.selectedPlayers.forEach(p => {
+            if (p && p.name === oldName) p.name = newName;
+          });
+        }
+      }
+    } catch (e) { /* skip */ }
+
+    // --- lineUpData in-memory (active mode) ---
+    if (App.lineUp && App.lineUp.lineUpData) {
+      Object.keys(App.lineUp.lineUpData).forEach(slot => {
+        if (App.lineUp.lineUpData[slot] === oldName) App.lineUp.lineUpData[slot] = newName;
+      });
+    }
+
+    // --- Post-migration UI refresh ---
+    if (App.lineUp && typeof App.lineUp.loadData === 'function') {
+      App.lineUp.loadData();
+    }
+    if (App.lineUp && typeof App.lineUp.render === 'function') {
+      App.lineUp.render();
+    }
+    if (App.statsTable && typeof App.statsTable.render === 'function') {
+      App.statsTable.render();
+    }
+    if (App.goalMap && typeof App.goalMap.initPlayerFilter === 'function') {
+      App.goalMap.initPlayerFilter();
+    }
   },
   
   handleConfirm() {
