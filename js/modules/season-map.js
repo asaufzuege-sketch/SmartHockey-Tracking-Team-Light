@@ -866,7 +866,7 @@ App.seasonMap = {
     const maxOp = this.HEATMAP_MAX_OPACITY;
     const range = maxOp - minOp;
     const power = this.HEATMAP_DENSITY_POWER;
-    const densityScale = Math.max(this.HEATMAP_MIN_DENSITY_SCALE, this.HEATMAP_DENSITY_SCALE);
+    const densityScale = Math.max(this.HEATMAP_MIN_DENSITY_SCALE, this.HEATMAP_DENSITY_SCALE || 1);
     const targetSaturation = Math.max(0, Math.min(1, this.HEATMAP_TARGET_S_BOOST));
     const baseHsl = rgbToHsl(r, g, b);
     const isNeutralColor = baseHsl[1] < this.HEATMAP_NEUTRAL_SATURATION_THRESHOLD;
@@ -874,6 +874,9 @@ App.seasonMap = {
       ? Math.min(this.HEATMAP_NEUTRAL_MAX_SATURATION, baseHsl[1] + this.HEATMAP_NEUTRAL_SATURATION_BOOST)
       : targetSaturation;
     const targetLightnessDrop = Math.max(0, Math.min(1, this.HEATMAP_TARGET_L_DROP));
+    const minLightnessFactor = isNeutralColor
+      ? this.HEATMAP_NEUTRAL_MIN_LIGHTNESS_FACTOR
+      : this.HEATMAP_COLORED_MIN_LIGHTNESS_FACTOR;
     
     for (let i = 0; i < data.length; i += 4) {
       const alpha = data[i + 3];
@@ -883,9 +886,6 @@ App.seasonMap = {
       const enhanced = Math.pow(ratio, power);
       const opacity = minOp + (enhanced * range);
       const saturation = baseHsl[1] + ((maxTargetSaturation - baseHsl[1]) * enhanced);
-      const minLightnessFactor = isNeutralColor
-        ? this.HEATMAP_NEUTRAL_MIN_LIGHTNESS_FACTOR
-        : this.HEATMAP_COLORED_MIN_LIGHTNESS_FACTOR;
       const minLightness = Math.max(0, baseHsl[2] * minLightnessFactor);
       const lightness = Math.max(minLightness, baseHsl[2] - (targetLightnessDrop * enhanced));
       const [rNew, gNew, bNew] = hslToRgb(baseHsl[0], Math.min(1, saturation), lightness);
