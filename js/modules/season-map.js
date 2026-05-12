@@ -13,15 +13,16 @@ App.seasonMap = {
   MOBILE_BREAKPOINT: 768,
   // Heatmap configuration
   HEATMAP_RENDER_DELAY: 150, // ms delay after marker rendering to ensure proper positioning
-  HEATMAP_RADIUS_FACTOR: 0.10, // Heatmap gradient radius as percentage of smaller dimension (desktop)
-  HEATMAP_RADIUS_FACTOR_MOBILE: 0.03, // Smaller radius for mobile devices
-  HEATMAP_MIN_OPACITY: 0.08, // Minimum opacity for low-density areas
+  HEATMAP_RADIUS_FACTOR: 0.12, // Heatmap gradient radius as percentage of smaller dimension (desktop)
+  HEATMAP_RADIUS_FACTOR_MOBILE: 0.04, // Smaller radius for mobile devices
+  HEATMAP_MIN_OPACITY: 0.03, // Minimum opacity for low-density areas
   HEATMAP_MAX_OPACITY: 0.98, // Maximum opacity for high-density areas
-  HEATMAP_DENSITY_POWER: 1.4, // Power function exponent for density scaling (> 1 emphasizes dense centers)
-  HEATMAP_BLUR_FACTOR: 0.18, // Post-blur radius factor (blur px = heatmap radius * factor, min 3px)
-  HEATMAP_MIN_BLUR_PX: 3, // Minimum blur radius in px to avoid harsh edges on very small radii
+  HEATMAP_DENSITY_POWER: 1.65, // Power function exponent for density scaling (> 1 emphasizes dense centers)
+  HEATMAP_DENSITY_SCALE: 3.2, // Scales accumulated alpha so overlapping markers become visibly darker than isolated points
+  HEATMAP_BLUR_FACTOR: 0.32, // Post-blur radius factor (blur px = heatmap radius * factor, min 3px)
+  HEATMAP_MIN_BLUR_PX: 6, // Minimum blur radius in px to avoid harsh edges on very small radii
   HEATMAP_TARGET_S_BOOST: 1.0, // Target saturation at maximum density
-  HEATMAP_TARGET_L_DROP: 0.40, // Lightness drop at maximum density
+  HEATMAP_TARGET_L_DROP: 0.48, // Lightness drop at maximum density
   HEATMAP_GRADIENT_MIDPOINT_OPACITY: 0.6, // Opacity multiplier at gradient midpoint for smoother transitions
   HEATMAP_MAX_DPR: 3, // Cap DPR to balance sharp rendering and processing cost
   
@@ -747,15 +748,16 @@ App.seasonMap = {
     if (!offCtx) return;
     offCtx.scale(dpr, dpr);
     offCtx.globalCompositeOperation = 'lighter';
+    const midpointOpacity = Math.max(0, Math.min(1, this.HEATMAP_GRADIENT_MIDPOINT_OPACITY));
     markers.forEach(marker => {
       const x = (marker.x / 100) * width;
       const y = (marker.y / 100) * height;
       
       const gradient = offCtx.createRadialGradient(x, y, 0, x, y, radius);
-      gradient.addColorStop(0.0, 'rgba(0, 0, 0, 0.32)');
-      gradient.addColorStop(0.25, 'rgba(0, 0, 0, 0.18)');
-      gradient.addColorStop(0.5, 'rgba(0, 0, 0, 0.08)');
-      gradient.addColorStop(0.75, 'rgba(0, 0, 0, 0.02)');
+      gradient.addColorStop(0.0, 'rgba(0, 0, 0, 0.18)');
+      gradient.addColorStop(0.35, `rgba(0, 0, 0, ${(0.18 * midpointOpacity).toFixed(3)})`);
+      gradient.addColorStop(0.7, 'rgba(0, 0, 0, 0.045)');
+      gradient.addColorStop(0.9, 'rgba(0, 0, 0, 0.012)');
       gradient.addColorStop(1.0, 'rgba(0, 0, 0, 0)');
       
       offCtx.fillStyle = gradient;
@@ -839,16 +841,20 @@ App.seasonMap = {
     // Read physical pixels so density scaling stays crisp on HiDPI backstores.
     const img = densityCtx.getImageData(0, 0, physicalWidth, physicalHeight);
     const data = img.data;
-    let maxAlpha = 0;
+    let hasDensity = false;
     for (let i = 3; i < data.length; i += 4) {
-      if (data[i] > maxAlpha) maxAlpha = data[i];
+      if (data[i] > 0) {
+        hasDensity = true;
+        break;
+      }
     }
-    if (maxAlpha === 0) return;
+    if (!hasDensity) return;
     
     const minOp = this.HEATMAP_MIN_OPACITY;
     const maxOp = this.HEATMAP_MAX_OPACITY;
     const range = maxOp - minOp;
     const power = this.HEATMAP_DENSITY_POWER;
+    const densityScale = Math.max(0.1, this.HEATMAP_DENSITY_SCALE || 1);
     const targetSaturation = Math.max(0, Math.min(1, this.HEATMAP_TARGET_S_BOOST));
     const targetLightnessDrop = Math.max(0, Math.min(1, this.HEATMAP_TARGET_L_DROP));
     const baseHsl = rgbToHsl(r, g, b);
@@ -857,13 +863,13 @@ App.seasonMap = {
       const alpha = data[i + 3];
       if (alpha === 0) continue;
       
-      const ratio = alpha / maxAlpha;
+      const ratio = Math.min(1, (alpha / 255) * densityScale);
       const enhanced = Math.pow(ratio, power);
       const opacity = minOp + (enhanced * range);
       const saturation = baseHsl[1] + ((targetSaturation - baseHsl[1]) * enhanced);
       const lightness = Math.max(0, baseHsl[2] - (targetLightnessDrop * enhanced));
       const [rNew, gNew, bNew] = hslToRgb(baseHsl[0], Math.min(1, saturation), lightness);
-      data[i + 3] = Math.round(opacity * 255);
+      data[i + 3] = Math.round(Math.min(1, opacity) * 255);
       data[i] = rNew;
       data[i + 1] = gNew;
       data[i + 2] = bNew;
