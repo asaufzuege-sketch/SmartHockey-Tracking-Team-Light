@@ -19,6 +19,7 @@ App.seasonMap = {
   HEATMAP_MAX_OPACITY: 0.95, // Maximum opacity for high-density areas
   HEATMAP_DENSITY_POWER: 0.7, // Power function exponent for density scaling (< 1 for faster initial rise)
   HEATMAP_BLUR_FACTOR: 0.18, // Post-blur radius factor (blur px = heatmap radius * factor, min 2px)
+  HEATMAP_MIN_BLUR_PX: 2, // Minimum blur radius in px to avoid harsh edges on very small radii
   HEATMAP_DARKEN_FACTOR: 0.45, // Darkness interpolation strength for high-density areas
   HEATMAP_GRADIENT_MIDPOINT_OPACITY: 0.6, // Opacity multiplier at gradient midpoint for smoother transitions
   
@@ -756,7 +757,7 @@ App.seasonMap = {
     });
     
     // Stage 2: Apply a soft post-blur to merge neighboring halos
-    const blurPx = Math.max(2, radius * this.HEATMAP_BLUR_FACTOR);
+    const blurPx = Math.max(this.HEATMAP_MIN_BLUR_PX, radius * this.HEATMAP_BLUR_FACTOR);
     let densityCanvas = off;
     let densityCtx = offCtx;
     const blurredOff = document.createElement('canvas');
@@ -788,6 +789,7 @@ App.seasonMap = {
     const rDark = Math.round(r * (1 - darkenFactor));
     const gDark = Math.round(g * (1 - darkenFactor));
     const bDark = Math.round(b * (1 - darkenFactor));
+    // Precompute channel deltas once (reused in hot per-pixel loop)
     const rDiff = rDark - r;
     const gDiff = gDark - g;
     const bDiff = bDark - b;
