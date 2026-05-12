@@ -15,13 +15,13 @@ App.seasonMap = {
   HEATMAP_RENDER_DELAY: 150, // ms delay after marker rendering to ensure proper positioning
   HEATMAP_RADIUS_FACTOR: 0.10, // Heatmap gradient radius as percentage of smaller dimension (desktop)
   HEATMAP_RADIUS_FACTOR_MOBILE: 0.03, // Smaller radius for mobile devices
-  HEATMAP_MIN_OPACITY: 0.2, // Minimum opacity for low-density areas
-  HEATMAP_MAX_OPACITY: 0.95, // Maximum opacity for high-density areas
-  HEATMAP_DENSITY_POWER: 0.7, // Power function exponent for density scaling (< 1 for faster initial rise)
-  HEATMAP_BLUR_FACTOR: 0.30, // Post-blur radius factor (blur px = heatmap radius * factor, min 3px)
+  HEATMAP_MIN_OPACITY: 0.08, // Minimum opacity for low-density areas
+  HEATMAP_MAX_OPACITY: 0.98, // Maximum opacity for high-density areas
+  HEATMAP_DENSITY_POWER: 1.4, // Power function exponent for density scaling (> 1 emphasizes dense centers)
+  HEATMAP_BLUR_FACTOR: 0.18, // Post-blur radius factor (blur px = heatmap radius * factor, min 3px)
   HEATMAP_MIN_BLUR_PX: 3, // Minimum blur radius in px to avoid harsh edges on very small radii
   HEATMAP_TARGET_S_BOOST: 1.0, // Target saturation at maximum density
-  HEATMAP_TARGET_L_DROP: 0.25, // Lightness drop at maximum density
+  HEATMAP_TARGET_L_DROP: 0.40, // Lightness drop at maximum density
   HEATMAP_GRADIENT_MIDPOINT_OPACITY: 0.6, // Opacity multiplier at gradient midpoint for smoother transitions
   
   // Helper to detect mobile viewport
@@ -618,9 +618,11 @@ App.seasonMap = {
       return;
     }
     
-    // Set canvas size to match the RENDERED image size (not container)
-    canvas.width = renderedImageRect.width;
-    canvas.height = renderedImageRect.height;
+    const dpr = Math.max(1, Math.min(3, window.devicePixelRatio || 1));
+    
+    // Set canvas size to match rendered image in physical pixels (HiDPI aware)
+    canvas.width = Math.round(renderedImageRect.width * dpr);
+    canvas.height = Math.round(renderedImageRect.height * dpr);
     
     // Validate canvas dimensions
     if (canvas.width === 0 || canvas.height === 0) {
@@ -640,6 +642,7 @@ App.seasonMap = {
       console.warn('[Season Map] Cannot render heatmap: canvas context unavailable');
       return;
     }
+    ctx.scale(dpr, dpr);
     
     // Get all markers
     const markers = fieldBox.querySelectorAll('.marker-dot');
@@ -698,18 +701,18 @@ App.seasonMap = {
     
     // Draw heatmaps for each color type
     // Green markers (scored goals) → green glow
-    this.drawHeatmapZone(ctx, greenMarkers, canvas.width, canvas.height, 'rgba(0, 255, 102, 0.6)');
+    this.drawHeatmapZone(ctx, greenMarkers, renderedImageRect.width, renderedImageRect.height, 'rgba(0, 255, 102, 0.6)', dpr);
     
     // Grey markers (missed shots) → grey glow
-    this.drawHeatmapZone(ctx, greyMarkers, canvas.width, canvas.height, 'rgba(68, 68, 68, 0.6)');
+    this.drawHeatmapZone(ctx, greyMarkers, renderedImageRect.width, renderedImageRect.height, 'rgba(68, 68, 68, 0.6)', dpr);
     
     // Red markers (conceded goals) → red glow
-    this.drawHeatmapZone(ctx, redMarkers, canvas.width, canvas.height, 'rgba(255, 0, 0, 0.6)');
+    this.drawHeatmapZone(ctx, redMarkers, renderedImageRect.width, renderedImageRect.height, 'rgba(255, 0, 0, 0.6)', dpr);
     
     fieldBox.appendChild(canvas);
   },
   
-  drawHeatmapZone(ctx, markers, width, height, color) {
+  drawHeatmapZone(ctx, markers, width, height, color, dpr = 1) {
     if (markers.length === 0) return;
     
     // Calculate radius once for all markers in this zone, using mobile-aware radius factor
@@ -735,19 +738,22 @@ App.seasonMap = {
     
     // Stage 1: Accumulate additive density on offscreen canvas
     const off = document.createElement('canvas');
-    off.width = width;
-    off.height = height;
+    const physicalWidth = Math.round(width * dpr);
+    const physicalHeight = Math.round(height * dpr);
+    off.width = physicalWidth;
+    off.height = physicalHeight;
     const offCtx = off.getContext('2d');
     if (!offCtx) return;
+    offCtx.scale(dpr, dpr);
     offCtx.globalCompositeOperation = 'lighter';
     markers.forEach(marker => {
       const x = (marker.x / 100) * width;
       const y = (marker.y / 100) * height;
       
       const gradient = offCtx.createRadialGradient(x, y, 0, x, y, radius);
-      gradient.addColorStop(0.0, 'rgba(0, 0, 0, 0.22)');
-      gradient.addColorStop(0.25, 'rgba(0, 0, 0, 0.13)');
-      gradient.addColorStop(0.5, 'rgba(0, 0, 0, 0.06)');
+      gradient.addColorStop(0.0, 'rgba(0, 0, 0, 0.32)');
+      gradient.addColorStop(0.25, 'rgba(0, 0, 0, 0.18)');
+      gradient.addColorStop(0.5, 'rgba(0, 0, 0, 0.08)');
       gradient.addColorStop(0.75, 'rgba(0, 0, 0, 0.02)');
       gradient.addColorStop(1.0, 'rgba(0, 0, 0, 0)');
       
@@ -762,12 +768,13 @@ App.seasonMap = {
     let densityCanvas = off;
     let densityCtx = offCtx;
     const blurredOff = document.createElement('canvas');
-    blurredOff.width = width;
-    blurredOff.height = height;
+    blurredOff.width = physicalWidth;
+    blurredOff.height = physicalHeight;
     const blurredOffCtx = blurredOff.getContext('2d');
     if (blurredOffCtx) {
+      blurredOffCtx.scale(dpr, dpr);
       blurredOffCtx.filter = `blur(${blurPx}px)`;
-      blurredOffCtx.drawImage(off, 0, 0);
+      blurredOffCtx.drawImage(off, 0, 0, width, height);
       blurredOffCtx.filter = 'none';
       densityCanvas = blurredOff;
       densityCtx = blurredOffCtx;
@@ -828,7 +835,7 @@ App.seasonMap = {
     };
     
     // Stage 3: Map density alpha and color using HSL saturation/lightness scaling
-    const img = densityCtx.getImageData(0, 0, width, height);
+    const img = densityCtx.getImageData(0, 0, physicalWidth, physicalHeight);
     const data = img.data;
     let maxAlpha = 0;
     for (let i = 3; i < data.length; i += 4) {
@@ -868,7 +875,7 @@ App.seasonMap = {
     ctx.globalCompositeOperation = 'source-over';
     ctx.imageSmoothingEnabled = true;
     ctx.imageSmoothingQuality = 'high';
-    ctx.drawImage(densityCanvas, 0, 0);
+    ctx.drawImage(densityCanvas, 0, 0, width, height);
     ctx.imageSmoothingEnabled = previousImageSmoothingEnabled;
     ctx.imageSmoothingQuality = previousImageSmoothingQuality;
     ctx.globalCompositeOperation = previousCompositeOperation;
