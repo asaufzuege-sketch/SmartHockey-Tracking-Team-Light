@@ -735,6 +735,8 @@ App.seasonMap = {
     off.height = height;
     const offCtx = off.getContext('2d');
     if (!offCtx) return;
+    const accumulationCenterOpacity = 0.35;
+    const accumulationMidOpacity = 0.12;
     
     offCtx.globalCompositeOperation = 'lighter';
     markers.forEach(marker => {
@@ -742,8 +744,8 @@ App.seasonMap = {
       const y = (marker.y / 100) * height;
       
       const gradient = offCtx.createRadialGradient(x, y, 0, x, y, radius);
-      gradient.addColorStop(0, 'rgba(0, 0, 0, 0.35)');
-      gradient.addColorStop(0.5, 'rgba(0, 0, 0, 0.12)');
+      gradient.addColorStop(0, `rgba(0, 0, 0, ${accumulationCenterOpacity})`);
+      gradient.addColorStop(0.5, `rgba(0, 0, 0, ${accumulationMidOpacity})`);
       gradient.addColorStop(1, 'rgba(0, 0, 0, 0)');
       
       offCtx.fillStyle = gradient;
@@ -782,8 +784,10 @@ App.seasonMap = {
     offCtx.fillStyle = `rgb(${r}, ${g}, ${b})`;
     offCtx.fillRect(0, 0, width, height);
     
+    const previousCompositeOperation = ctx.globalCompositeOperation;
     ctx.globalCompositeOperation = 'source-over';
     ctx.drawImage(off, 0, 0);
+    ctx.globalCompositeOperation = previousCompositeOperation;
   },
   
   // -----------------------------
