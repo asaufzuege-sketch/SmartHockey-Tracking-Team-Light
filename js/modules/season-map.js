@@ -19,9 +19,12 @@ App.seasonMap = {
   HEATMAP_MAX_OPACITY: 0.98, // Maximum opacity for high-density areas
   HEATMAP_DENSITY_POWER: 1.65, // Power function exponent for density scaling (> 1 emphasizes dense centers)
   HEATMAP_DENSITY_SCALE: 2.8, // Scales accumulated alpha so overlapping markers become visibly darker than isolated points
+  HEATMAP_MIN_DENSITY_SCALE: 0.1, // Lower bound so density scaling cannot collapse to a visually ineffective value
   HEATMAP_BLUR_FACTOR: 0.32, // Post-blur radius factor (blur px = heatmap radius * factor, min 3px)
   HEATMAP_MIN_BLUR_PX: 6, // Minimum blur radius in px to avoid harsh edges on very small radii
   HEATMAP_GRADIENT_CENTER_OPACITY: 0.18, // Base per-marker density deposited at the center before blur/compositing
+  HEATMAP_GRADIENT_OUTER_OPACITY: 0.045, // Soft outer density contribution that helps neighboring zones merge
+  HEATMAP_GRADIENT_EDGE_OPACITY: 0.012, // Very soft edge opacity to avoid harsh heatmap cutoffs
   HEATMAP_TARGET_S_BOOST: 1.0, // Target saturation at maximum density
   HEATMAP_TARGET_L_DROP: 0.36, // Lightness drop at maximum density
   HEATMAP_NEUTRAL_SATURATION_THRESHOLD: 0.08, // Treat very low-saturation colors as neutral greys for density tinting
@@ -756,8 +759,8 @@ App.seasonMap = {
     offCtx.globalCompositeOperation = 'lighter';
     const centerOpacity = Math.max(0, Math.min(1, this.HEATMAP_GRADIENT_CENTER_OPACITY));
     const midpointOpacity = Math.max(0, Math.min(1, this.HEATMAP_GRADIENT_MIDPOINT_OPACITY));
-    const outerOpacity = 0.045;
-    const edgeOpacity = 0.012;
+    const outerOpacity = Math.max(0, Math.min(1, this.HEATMAP_GRADIENT_OUTER_OPACITY));
+    const edgeOpacity = Math.max(0, Math.min(1, this.HEATMAP_GRADIENT_EDGE_OPACITY));
     markers.forEach(marker => {
       const x = (marker.x / 100) * width;
       const y = (marker.y / 100) * height;
@@ -863,7 +866,7 @@ App.seasonMap = {
     const maxOp = this.HEATMAP_MAX_OPACITY;
     const range = maxOp - minOp;
     const power = this.HEATMAP_DENSITY_POWER;
-    const densityScale = Math.max(0.1, this.HEATMAP_DENSITY_SCALE);
+    const densityScale = Math.max(this.HEATMAP_MIN_DENSITY_SCALE, this.HEATMAP_DENSITY_SCALE);
     const targetSaturation = Math.max(0, Math.min(1, this.HEATMAP_TARGET_S_BOOST));
     const baseHsl = rgbToHsl(r, g, b);
     const isNeutralColor = baseHsl[1] < this.HEATMAP_NEUTRAL_SATURATION_THRESHOLD;
