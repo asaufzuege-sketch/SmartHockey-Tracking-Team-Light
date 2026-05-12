@@ -13,14 +13,14 @@ App.seasonMap = {
   MOBILE_BREAKPOINT: 768,
   // Heatmap configuration
   HEATMAP_RENDER_DELAY: 150, // ms delay after marker rendering to ensure proper positioning
-  HEATMAP_RADIUS_FACTOR: 0.20, // Heatmap gradient radius as percentage of smaller dimension (desktop)
-  HEATMAP_RADIUS_FACTOR_MOBILE: 0.06, // Smaller radius for mobile devices
+  HEATMAP_RADIUS_FACTOR: 0.10, // Heatmap gradient radius as percentage of smaller dimension (desktop)
+  HEATMAP_RADIUS_FACTOR_MOBILE: 0.03, // Smaller radius for mobile devices
   HEATMAP_MIN_OPACITY: 0.2, // Minimum opacity for low-density areas
   HEATMAP_MAX_OPACITY: 0.95, // Maximum opacity for high-density areas
   HEATMAP_DENSITY_POWER: 0.7, // Power function exponent for density scaling (< 1 for faster initial rise)
   HEATMAP_BLUR_FACTOR: 0.18, // Post-blur radius factor (blur px = heatmap radius * factor, min 2px)
   HEATMAP_MIN_BLUR_PX: 2, // Minimum blur radius in px to avoid harsh edges on very small radii
-  HEATMAP_DARKEN_FACTOR: 0.45, // Darkness interpolation strength for high-density areas
+  HEATMAP_DARKEN_FACTOR: 0.65, // Darkness interpolation strength for high-density areas
   HEATMAP_GRADIENT_MIDPOINT_OPACITY: 0.6, // Opacity multiplier at gradient midpoint for smoother transitions
   
   // Helper to detect mobile viewport
