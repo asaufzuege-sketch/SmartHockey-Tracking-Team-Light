@@ -18,9 +18,10 @@ App.seasonMap = {
   HEATMAP_MIN_OPACITY: 0.2, // Minimum opacity for low-density areas
   HEATMAP_MAX_OPACITY: 0.95, // Maximum opacity for high-density areas
   HEATMAP_DENSITY_POWER: 0.7, // Power function exponent for density scaling (< 1 for faster initial rise)
-  HEATMAP_BLUR_FACTOR: 0.18, // Post-blur radius factor (blur px = heatmap radius * factor, min 2px)
-  HEATMAP_MIN_BLUR_PX: 2, // Minimum blur radius in px to avoid harsh edges on very small radii
-  HEATMAP_DARKEN_FACTOR: 0.65, // Darkness interpolation strength for high-density areas
+  HEATMAP_BLUR_FACTOR: 0.30, // Post-blur radius factor (blur px = heatmap radius * factor, min 3px)
+  HEATMAP_MIN_BLUR_PX: 3, // Minimum blur radius in px to avoid harsh edges on very small radii
+  HEATMAP_TARGET_S_BOOST: 1.0, // Target saturation at maximum density
+  HEATMAP_TARGET_L_DROP: 0.25, // Lightness drop at maximum density
   HEATMAP_GRADIENT_MIDPOINT_OPACITY: 0.6, // Opacity multiplier at gradient midpoint for smoother transitions
   
   // Helper to detect mobile viewport
@@ -744,9 +745,9 @@ App.seasonMap = {
       const y = (marker.y / 100) * height;
       
       const gradient = offCtx.createRadialGradient(x, y, 0, x, y, radius);
-      gradient.addColorStop(0.0, 'rgba(0, 0, 0, 0.30)');
-      gradient.addColorStop(0.25, 'rgba(0, 0, 0, 0.18)');
-      gradient.addColorStop(0.5, 'rgba(0, 0, 0, 0.08)');
+      gradient.addColorStop(0.0, 'rgba(0, 0, 0, 0.22)');
+      gradient.addColorStop(0.25, 'rgba(0, 0, 0, 0.13)');
+      gradient.addColorStop(0.5, 'rgba(0, 0, 0, 0.06)');
       gradient.addColorStop(0.75, 'rgba(0, 0, 0, 0.02)');
       gradient.addColorStop(1.0, 'rgba(0, 0, 0, 0)');
       
@@ -772,7 +773,61 @@ App.seasonMap = {
       densityCtx = blurredOffCtx;
     }
     
-    // Stage 3: Map density alpha and color darkness
+    const rgbToHsl = (red, green, blue) => {
+      const redNorm = red / 255;
+      const greenNorm = green / 255;
+      const blueNorm = blue / 255;
+      const max = Math.max(redNorm, greenNorm, blueNorm);
+      const min = Math.min(redNorm, greenNorm, blueNorm);
+      const delta = max - min;
+      let hue = 0;
+      let saturation = 0;
+      const lightness = (max + min) / 2;
+      if (delta !== 0) {
+        saturation = delta / (1 - Math.abs((2 * lightness) - 1));
+        switch (max) {
+          case redNorm:
+            hue = ((greenNorm - blueNorm) / delta) % 6;
+            break;
+          case greenNorm:
+            hue = ((blueNorm - redNorm) / delta) + 2;
+            break;
+          default:
+            hue = ((redNorm - greenNorm) / delta) + 4;
+            break;
+        }
+        hue = (hue * 60 + 360) % 360;
+      }
+      return [hue, saturation, lightness];
+    };
+    const hslToRgb = (hue, saturation, lightness) => {
+      const chroma = (1 - Math.abs((2 * lightness) - 1)) * saturation;
+      const x = chroma * (1 - Math.abs(((hue / 60) % 2) - 1));
+      const m = lightness - (chroma / 2);
+      let redPrime = 0;
+      let greenPrime = 0;
+      let bluePrime = 0;
+      if (hue < 60) {
+        redPrime = chroma; greenPrime = x;
+      } else if (hue < 120) {
+        redPrime = x; greenPrime = chroma;
+      } else if (hue < 180) {
+        greenPrime = chroma; bluePrime = x;
+      } else if (hue < 240) {
+        greenPrime = x; bluePrime = chroma;
+      } else if (hue < 300) {
+        redPrime = x; bluePrime = chroma;
+      } else {
+        redPrime = chroma; bluePrime = x;
+      }
+      return [
+        Math.round((redPrime + m) * 255),
+        Math.round((greenPrime + m) * 255),
+        Math.round((bluePrime + m) * 255)
+      ];
+    };
+    
+    // Stage 3: Map density alpha and color using HSL saturation/lightness scaling
     const img = densityCtx.getImageData(0, 0, width, height);
     const data = img.data;
     let maxAlpha = 0;
@@ -785,14 +840,9 @@ App.seasonMap = {
     const maxOp = this.HEATMAP_MAX_OPACITY;
     const range = maxOp - minOp;
     const power = this.HEATMAP_DENSITY_POWER;
-    const darkenFactor = Math.max(0, Math.min(1, this.HEATMAP_DARKEN_FACTOR));
-    const rDark = Math.round(r * (1 - darkenFactor));
-    const gDark = Math.round(g * (1 - darkenFactor));
-    const bDark = Math.round(b * (1 - darkenFactor));
-    // Precompute channel deltas once (reused in hot per-pixel loop)
-    const rDiff = rDark - r;
-    const gDiff = gDark - g;
-    const bDiff = bDark - b;
+    const targetSaturation = Math.max(0, Math.min(1, this.HEATMAP_TARGET_S_BOOST));
+    const targetLightnessDrop = Math.max(0, Math.min(1, this.HEATMAP_TARGET_L_DROP));
+    const baseHsl = rgbToHsl(r, g, b);
     
     for (let i = 0; i < data.length; i += 4) {
       const alpha = data[i + 3];
@@ -801,17 +851,26 @@ App.seasonMap = {
       const ratio = alpha / maxAlpha;
       const enhanced = Math.pow(ratio, power);
       const opacity = minOp + (enhanced * range);
+      const saturation = baseHsl[1] + ((targetSaturation - baseHsl[1]) * enhanced);
+      const lightness = Math.max(0, baseHsl[2] - (targetLightnessDrop * enhanced));
+      const [rNew, gNew, bNew] = hslToRgb(baseHsl[0], Math.min(1, saturation), lightness);
       data[i + 3] = Math.round(opacity * 255);
-      data[i] = Math.round(r + (rDiff * enhanced));
-      data[i + 1] = Math.round(g + (gDiff * enhanced));
-      data[i + 2] = Math.round(b + (bDiff * enhanced));
+      data[i] = rNew;
+      data[i + 1] = gNew;
+      data[i + 2] = bNew;
     }
     
     densityCtx.putImageData(img, 0, 0);
     
     const previousCompositeOperation = ctx.globalCompositeOperation;
+    const previousImageSmoothingEnabled = ctx.imageSmoothingEnabled;
+    const previousImageSmoothingQuality = ctx.imageSmoothingQuality;
     ctx.globalCompositeOperation = 'source-over';
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = 'high';
     ctx.drawImage(densityCanvas, 0, 0);
+    ctx.imageSmoothingEnabled = previousImageSmoothingEnabled;
+    ctx.imageSmoothingQuality = previousImageSmoothingQuality;
     ctx.globalCompositeOperation = previousCompositeOperation;
   },
   
