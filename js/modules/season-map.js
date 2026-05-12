@@ -759,18 +759,16 @@ App.seasonMap = {
     const blurPx = Math.max(2, radius * this.HEATMAP_BLUR_FACTOR);
     let densityCanvas = off;
     let densityCtx = offCtx;
-    if (blurPx > 0) {
-      const blurredOff = document.createElement('canvas');
-      blurredOff.width = width;
-      blurredOff.height = height;
-      const blurredOffCtx = blurredOff.getContext('2d');
-      if (blurredOffCtx) {
-        blurredOffCtx.filter = `blur(${blurPx}px)`;
-        blurredOffCtx.drawImage(off, 0, 0);
-        blurredOffCtx.filter = 'none';
-        densityCanvas = blurredOff;
-        densityCtx = blurredOffCtx;
-      }
+    const blurredOff = document.createElement('canvas');
+    blurredOff.width = width;
+    blurredOff.height = height;
+    const blurredOffCtx = blurredOff.getContext('2d');
+    if (blurredOffCtx) {
+      blurredOffCtx.filter = `blur(${blurPx}px)`;
+      blurredOffCtx.drawImage(off, 0, 0);
+      blurredOffCtx.filter = 'none';
+      densityCanvas = blurredOff;
+      densityCtx = blurredOffCtx;
     }
     
     // Stage 3: Map density alpha and color darkness
@@ -790,6 +788,9 @@ App.seasonMap = {
     const rDark = Math.round(r * (1 - darkenFactor));
     const gDark = Math.round(g * (1 - darkenFactor));
     const bDark = Math.round(b * (1 - darkenFactor));
+    const rDiff = rDark - r;
+    const gDiff = gDark - g;
+    const bDiff = bDark - b;
     
     for (let i = 0; i < data.length; i += 4) {
       const alpha = data[i + 3];
@@ -799,9 +800,9 @@ App.seasonMap = {
       const enhanced = Math.pow(ratio, power);
       const opacity = minOp + (enhanced * range);
       data[i + 3] = Math.round(opacity * 255);
-      data[i] = Math.round(r + ((rDark - r) * enhanced));
-      data[i + 1] = Math.round(g + ((gDark - g) * enhanced));
-      data[i + 2] = Math.round(b + ((bDark - b) * enhanced));
+      data[i] = Math.round(r + (rDiff * enhanced));
+      data[i + 1] = Math.round(g + (gDiff * enhanced));
+      data[i + 2] = Math.round(b + (bDiff * enhanced));
     }
     
     densityCtx.putImageData(img, 0, 0);
