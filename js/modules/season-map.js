@@ -23,6 +23,9 @@ App.seasonMap = {
   HEATMAP_MIN_BLUR_PX: 6, // Minimum blur radius in px to avoid harsh edges on very small radii
   HEATMAP_TARGET_S_BOOST: 1.0, // Target saturation at maximum density
   HEATMAP_TARGET_L_DROP: 0.36, // Lightness drop at maximum density
+  HEATMAP_NEUTRAL_SATURATION_THRESHOLD: 0.08, // Treat very low-saturation colors as neutral greys for density tinting
+  HEATMAP_NEUTRAL_MAX_SATURATION: 0.12, // Keep grey clusters mostly neutral even at maximum density
+  HEATMAP_NEUTRAL_SATURATION_BOOST: 0.04, // Slight saturation lift prevents dense grey zones from looking flat
   HEATMAP_NEUTRAL_MIN_LIGHTNESS_FACTOR: 0.35, // Prevent dense neutral clusters from collapsing fully to black
   HEATMAP_COLORED_MIN_LIGHTNESS_FACTOR: 0.4, // Keep dense colored clusters dark but still visibly colored
   HEATMAP_GRADIENT_MIDPOINT_OPACITY: 0.6, // Opacity multiplier at gradient midpoint for smoother transitions
@@ -861,8 +864,9 @@ App.seasonMap = {
     const densityScale = Math.max(0.1, this.HEATMAP_DENSITY_SCALE || 1);
     const targetSaturation = Math.max(0, Math.min(1, this.HEATMAP_TARGET_S_BOOST));
     const baseHsl = rgbToHsl(r, g, b);
-    const maxTargetSaturation = baseHsl[1] < 0.08
-      ? Math.min(0.12, baseHsl[1] + 0.04)
+    const isNeutralColor = baseHsl[1] < this.HEATMAP_NEUTRAL_SATURATION_THRESHOLD;
+    const maxTargetSaturation = isNeutralColor
+      ? Math.min(this.HEATMAP_NEUTRAL_MAX_SATURATION, baseHsl[1] + this.HEATMAP_NEUTRAL_SATURATION_BOOST)
       : targetSaturation;
     const targetLightnessDrop = Math.max(0, Math.min(1, this.HEATMAP_TARGET_L_DROP));
     
@@ -874,7 +878,7 @@ App.seasonMap = {
       const enhanced = Math.pow(ratio, power);
       const opacity = minOp + (enhanced * range);
       const saturation = baseHsl[1] + ((maxTargetSaturation - baseHsl[1]) * enhanced);
-      const minLightnessFactor = baseHsl[1] < 0.08
+      const minLightnessFactor = isNeutralColor
         ? this.HEATMAP_NEUTRAL_MIN_LIGHTNESS_FACTOR
         : this.HEATMAP_COLORED_MIN_LIGHTNESS_FACTOR;
       const minLightness = Math.max(0, baseHsl[2] * minLightnessFactor);
