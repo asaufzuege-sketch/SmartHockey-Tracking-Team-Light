@@ -15,7 +15,7 @@ App.seasonMap = {
   HEATMAP_RENDER_DELAY: 150, // ms delay after marker rendering to ensure proper positioning
   HEATMAP_RADIUS_FACTOR: 0.12, // Heatmap gradient radius as percentage of smaller dimension (desktop)
   HEATMAP_RADIUS_FACTOR_MOBILE: 0.04, // Smaller radius for mobile devices
-  HEATMAP_MIN_OPACITY: 0.03, // Minimum opacity for low-density areas
+  HEATMAP_MIN_OPACITY: 0.15, // Minimum opacity for low-density areas (raised for visible edge halos)
   HEATMAP_MAX_OPACITY: 0.98, // Maximum opacity for high-density areas
   HEATMAP_DENSITY_POWER: 1.65, // Power function exponent for density scaling (> 1 emphasizes dense centers)
   HEATMAP_DENSITY_SCALE: 2.8, // Scales accumulated alpha so overlapping markers become visibly darker than isolated points
@@ -23,15 +23,15 @@ App.seasonMap = {
   HEATMAP_BLUR_FACTOR: 0.32, // Post-blur radius factor (blur px = heatmap radius * factor, min 3px)
   HEATMAP_MIN_BLUR_PX: 6, // Minimum blur radius in px to avoid harsh edges on very small radii
   HEATMAP_GRADIENT_CENTER_OPACITY: 0.18, // Base per-marker density deposited at the center before blur/compositing
-  HEATMAP_GRADIENT_OUTER_OPACITY: 0.045, // Soft outer density contribution that helps neighboring zones merge
-  HEATMAP_GRADIENT_EDGE_OPACITY: 0.012, // Very soft edge opacity to avoid harsh heatmap cutoffs
+  HEATMAP_GRADIENT_OUTER_OPACITY: 0.065, // Soft outer density contribution that helps neighboring zones merge
+  HEATMAP_GRADIENT_EDGE_OPACITY: 0.022, // Very soft edge opacity to avoid harsh heatmap cutoffs
   HEATMAP_TARGET_S_BOOST: 1.0, // Target saturation at maximum density
-  HEATMAP_TARGET_L_DROP: 0.36, // Lightness drop at maximum density
+  HEATMAP_TARGET_L_DROP: 0.18, // Lightness drop at maximum density (reduced to keep colours vivid, not muddy)
   HEATMAP_NEUTRAL_SATURATION_THRESHOLD: 0.08, // Treat very low-saturation colors as neutral greys for density tinting
   HEATMAP_NEUTRAL_MAX_SATURATION: 0.12, // Keep grey clusters mostly neutral even at maximum density
   HEATMAP_NEUTRAL_SATURATION_BOOST: 0.04, // Slight saturation lift prevents dense grey zones from looking flat
   HEATMAP_NEUTRAL_MIN_LIGHTNESS_FACTOR: 0.35, // Prevent dense neutral clusters from collapsing fully to black
-  HEATMAP_COLORED_MIN_LIGHTNESS_FACTOR: 0.4, // Keep dense colored clusters dark but still visibly colored
+  HEATMAP_COLORED_MIN_LIGHTNESS_FACTOR: 0.68, // High lightness floor keeps dense colored clusters vivid, not near-black
   HEATMAP_GRADIENT_MIDPOINT_OPACITY: 0.6, // Opacity multiplier at gradient midpoint for smoother transitions
   HEATMAP_MAX_DPR: 3, // Cap DPR to balance sharp rendering and processing cost
   
