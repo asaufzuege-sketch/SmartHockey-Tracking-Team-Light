@@ -13,11 +13,13 @@ App.seasonMap = {
   MOBILE_BREAKPOINT: 768,
   // Heatmap configuration
   HEATMAP_RENDER_DELAY: 150, // ms delay after marker rendering to ensure proper positioning
-  HEATMAP_RADIUS_FACTOR: 0.15, // Heatmap gradient radius as percentage of smaller dimension (desktop)
-  HEATMAP_RADIUS_FACTOR_MOBILE: 0.04, // MUCH smaller radius for mobile devices (was 0.08, now 0.04)
+  HEATMAP_RADIUS_FACTOR: 0.20, // Heatmap gradient radius as percentage of smaller dimension (desktop)
+  HEATMAP_RADIUS_FACTOR_MOBILE: 0.06, // Smaller radius for mobile devices
   HEATMAP_MIN_OPACITY: 0.2, // Minimum opacity for low-density areas
   HEATMAP_MAX_OPACITY: 0.95, // Maximum opacity for high-density areas
   HEATMAP_DENSITY_POWER: 0.7, // Power function exponent for density scaling (< 1 for faster initial rise)
+  HEATMAP_BLUR_FACTOR: 0.18, // Post-blur radius factor (blur px = heatmap radius * factor, min 2px)
+  HEATMAP_DARKEN_FACTOR: 0.45, // Darkness interpolation strength for high-density areas
   HEATMAP_GRADIENT_MIDPOINT_OPACITY: 0.6, // Opacity multiplier at gradient midpoint for smoother transitions
   
   // Helper to detect mobile viewport
@@ -735,18 +737,17 @@ App.seasonMap = {
     off.height = height;
     const offCtx = off.getContext('2d');
     if (!offCtx) return;
-    const accumulationCenterOpacity = 0.35;
-    const accumulationMidOpacity = 0.12;
-    
     offCtx.globalCompositeOperation = 'lighter';
     markers.forEach(marker => {
       const x = (marker.x / 100) * width;
       const y = (marker.y / 100) * height;
       
       const gradient = offCtx.createRadialGradient(x, y, 0, x, y, radius);
-      gradient.addColorStop(0, `rgba(0, 0, 0, ${accumulationCenterOpacity})`);
-      gradient.addColorStop(0.5, `rgba(0, 0, 0, ${accumulationMidOpacity})`);
-      gradient.addColorStop(1, 'rgba(0, 0, 0, 0)');
+      gradient.addColorStop(0.0, 'rgba(0, 0, 0, 0.30)');
+      gradient.addColorStop(0.25, 'rgba(0, 0, 0, 0.18)');
+      gradient.addColorStop(0.5, 'rgba(0, 0, 0, 0.08)');
+      gradient.addColorStop(0.75, 'rgba(0, 0, 0, 0.02)');
+      gradient.addColorStop(1.0, 'rgba(0, 0, 0, 0)');
       
       offCtx.fillStyle = gradient;
       offCtx.beginPath();
@@ -754,8 +755,26 @@ App.seasonMap = {
       offCtx.fill();
     });
     
-    // Stage 2: Map density alpha to existing opacity curve
-    const img = offCtx.getImageData(0, 0, width, height);
+    // Stage 2: Apply a soft post-blur to merge neighboring halos
+    const blurPx = Math.max(2, radius * this.HEATMAP_BLUR_FACTOR);
+    let densityCanvas = off;
+    let densityCtx = offCtx;
+    if (blurPx > 0) {
+      const blurredOff = document.createElement('canvas');
+      blurredOff.width = width;
+      blurredOff.height = height;
+      const blurredOffCtx = blurredOff.getContext('2d');
+      if (blurredOffCtx) {
+        blurredOffCtx.filter = `blur(${blurPx}px)`;
+        blurredOffCtx.drawImage(off, 0, 0);
+        blurredOffCtx.filter = 'none';
+        densityCanvas = blurredOff;
+        densityCtx = blurredOffCtx;
+      }
+    }
+    
+    // Stage 3: Map density alpha and color darkness
+    const img = densityCtx.getImageData(0, 0, width, height);
     const data = img.data;
     let maxAlpha = 0;
     for (let i = 3; i < data.length; i += 4) {
@@ -767,26 +786,29 @@ App.seasonMap = {
     const maxOp = this.HEATMAP_MAX_OPACITY;
     const range = maxOp - minOp;
     const power = this.HEATMAP_DENSITY_POWER;
+    const darkenFactor = Math.max(0, Math.min(1, this.HEATMAP_DARKEN_FACTOR));
+    const rDark = Math.round(r * (1 - darkenFactor));
+    const gDark = Math.round(g * (1 - darkenFactor));
+    const bDark = Math.round(b * (1 - darkenFactor));
     
-    for (let i = 3; i < data.length; i += 4) {
-      const alpha = data[i];
+    for (let i = 0; i < data.length; i += 4) {
+      const alpha = data[i + 3];
       if (alpha === 0) continue;
       
       const ratio = alpha / maxAlpha;
       const enhanced = Math.pow(ratio, power);
-      data[i] = Math.round((minOp + (enhanced * range)) * 255);
+      const opacity = minOp + (enhanced * range);
+      data[i + 3] = Math.round(opacity * 255);
+      data[i] = Math.round(r + ((rDark - r) * enhanced));
+      data[i + 1] = Math.round(g + ((gDark - g) * enhanced));
+      data[i + 2] = Math.round(b + ((bDark - b) * enhanced));
     }
     
-    offCtx.putImageData(img, 0, 0);
-    
-    // Recolor density mask and blend to main canvas without removing previous zones
-    offCtx.globalCompositeOperation = 'source-in';
-    offCtx.fillStyle = `rgb(${r}, ${g}, ${b})`;
-    offCtx.fillRect(0, 0, width, height);
+    densityCtx.putImageData(img, 0, 0);
     
     const previousCompositeOperation = ctx.globalCompositeOperation;
     ctx.globalCompositeOperation = 'source-over';
-    ctx.drawImage(off, 0, 0);
+    ctx.drawImage(densityCanvas, 0, 0);
     ctx.globalCompositeOperation = previousCompositeOperation;
   },
   
