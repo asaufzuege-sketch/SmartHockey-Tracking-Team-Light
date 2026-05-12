@@ -18,11 +18,11 @@ App.seasonMap = {
   HEATMAP_MIN_OPACITY: 0.03, // Minimum opacity for low-density areas
   HEATMAP_MAX_OPACITY: 0.98, // Maximum opacity for high-density areas
   HEATMAP_DENSITY_POWER: 1.65, // Power function exponent for density scaling (> 1 emphasizes dense centers)
-  HEATMAP_DENSITY_SCALE: 3.2, // Scales accumulated alpha so overlapping markers become visibly darker than isolated points
+  HEATMAP_DENSITY_SCALE: 2.8, // Scales accumulated alpha so overlapping markers become visibly darker than isolated points
   HEATMAP_BLUR_FACTOR: 0.32, // Post-blur radius factor (blur px = heatmap radius * factor, min 3px)
   HEATMAP_MIN_BLUR_PX: 6, // Minimum blur radius in px to avoid harsh edges on very small radii
   HEATMAP_TARGET_S_BOOST: 1.0, // Target saturation at maximum density
-  HEATMAP_TARGET_L_DROP: 0.48, // Lightness drop at maximum density
+  HEATMAP_TARGET_L_DROP: 0.36, // Lightness drop at maximum density
   HEATMAP_GRADIENT_MIDPOINT_OPACITY: 0.6, // Opacity multiplier at gradient midpoint for smoother transitions
   HEATMAP_MAX_DPR: 3, // Cap DPR to balance sharp rendering and processing cost
   
@@ -856,8 +856,11 @@ App.seasonMap = {
     const power = this.HEATMAP_DENSITY_POWER;
     const densityScale = Math.max(0.1, this.HEATMAP_DENSITY_SCALE || 1);
     const targetSaturation = Math.max(0, Math.min(1, this.HEATMAP_TARGET_S_BOOST));
-    const targetLightnessDrop = Math.max(0, Math.min(1, this.HEATMAP_TARGET_L_DROP));
     const baseHsl = rgbToHsl(r, g, b);
+    const maxTargetSaturation = baseHsl[1] < 0.08
+      ? Math.min(0.12, baseHsl[1] + 0.04)
+      : targetSaturation;
+    const targetLightnessDrop = Math.max(0, Math.min(1, this.HEATMAP_TARGET_L_DROP));
     
     for (let i = 0; i < data.length; i += 4) {
       const alpha = data[i + 3];
@@ -866,8 +869,9 @@ App.seasonMap = {
       const ratio = Math.min(1, (alpha / 255) * densityScale);
       const enhanced = Math.pow(ratio, power);
       const opacity = minOp + (enhanced * range);
-      const saturation = baseHsl[1] + ((targetSaturation - baseHsl[1]) * enhanced);
-      const lightness = Math.max(0, baseHsl[2] - (targetLightnessDrop * enhanced));
+      const saturation = baseHsl[1] + ((maxTargetSaturation - baseHsl[1]) * enhanced);
+      const minLightness = Math.max(0, baseHsl[2] * (baseHsl[1] < 0.08 ? 0.35 : 0.4));
+      const lightness = Math.max(minLightness, baseHsl[2] - (targetLightnessDrop * enhanced));
       const [rNew, gNew, bNew] = hslToRgb(baseHsl[0], Math.min(1, saturation), lightness);
       data[i + 3] = Math.round(Math.min(1, opacity) * 255);
       data[i] = rNew;
