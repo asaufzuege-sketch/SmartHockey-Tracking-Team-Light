@@ -23,6 +23,7 @@ App.seasonMap = {
   HEATMAP_TARGET_S_BOOST: 1.0, // Target saturation at maximum density
   HEATMAP_TARGET_L_DROP: 0.40, // Lightness drop at maximum density
   HEATMAP_GRADIENT_MIDPOINT_OPACITY: 0.6, // Opacity multiplier at gradient midpoint for smoother transitions
+  HEATMAP_MAX_DPR: 3, // Cap DPR to balance sharp rendering and processing cost
   
   // Helper to detect mobile viewport
   isMobileView() {
@@ -618,7 +619,7 @@ App.seasonMap = {
       return;
     }
     
-    const dpr = Math.max(1, Math.min(3, window.devicePixelRatio || 1));
+    const dpr = Math.max(1, Math.min(this.HEATMAP_MAX_DPR, window.devicePixelRatio || 1));
     
     // Set canvas size to match rendered image in physical pixels (HiDPI aware)
     canvas.width = Math.round(renderedImageRect.width * dpr);
@@ -835,6 +836,7 @@ App.seasonMap = {
     };
     
     // Stage 3: Map density alpha and color using HSL saturation/lightness scaling
+    // Read physical pixels so density scaling stays crisp on HiDPI backstores.
     const img = densityCtx.getImageData(0, 0, physicalWidth, physicalHeight);
     const data = img.data;
     let maxAlpha = 0;
