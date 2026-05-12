@@ -712,29 +712,6 @@ App.seasonMap = {
     const radiusFactor = this.getHeatmapRadiusFactor();
     const radius = Math.min(width, height) * radiusFactor;
     
-    // Calculate local density for each marker (how many markers are nearby)
-    const densities = markers.map((marker, idx) => {
-      const x = (marker.x / 100) * width;
-      const y = (marker.y / 100) * height;
-      
-      // Count nearby markers within 2x radius
-      const nearbyCount = markers.reduce((count, otherMarker, otherIdx) => {
-        if (idx === otherIdx) return count;
-        
-        const otherX = (otherMarker.x / 100) * width;
-        const otherY = (otherMarker.y / 100) * height;
-        const distance = Math.hypot(x - otherX, y - otherY);
-        
-        // Count markers within 2x radius as contributing to density
-        return distance <= (radius * 2) ? count + 1 : count;
-      }, 1); // Start with 1 to count the marker itself
-      
-      return nearbyCount;
-    });
-    
-    // Find max density for normalization
-    const maxDensity = Math.max(...densities);
-    
     // Parse base color to extract RGB values
     const baseColorMatch = color.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/);
     if (!baseColorMatch) {
@@ -752,37 +729,65 @@ App.seasonMap = {
       return;
     }
     
-    markers.forEach((marker, idx) => {
+    // Stage 1: Accumulate additive density on offscreen canvas
+    const off = document.createElement('canvas');
+    off.width = width;
+    off.height = height;
+    const offCtx = off.getContext('2d');
+    if (!offCtx) return;
+    const accumulationCenterOpacity = 0.35;
+    const accumulationMidOpacity = 0.12;
+    
+    offCtx.globalCompositeOperation = 'lighter';
+    markers.forEach(marker => {
       const x = (marker.x / 100) * width;
       const y = (marker.y / 100) * height;
       
-      // Calculate opacity based on local density with improved scaling
-      // Use exponential scaling to create more dramatic differences
-      const densityRatio = densities[idx] / maxDensity;
-      
-      // Enhanced opacity range for better visual contrast
-      // Apply power function for more dramatic increase in high-density areas
-      const opacityRange = this.HEATMAP_MAX_OPACITY - this.HEATMAP_MIN_OPACITY;
-      
-      // Apply power < 1 to create a curve that rises faster initially, then slower at high densities
-      // This makes medium-density areas more visible while still emphasizing high-density concentrations
-      const enhancedRatio = Math.pow(densityRatio, this.HEATMAP_DENSITY_POWER);
-      const opacity = this.HEATMAP_MIN_OPACITY + (enhancedRatio * opacityRange);
-      
-      // Create radial gradient for each point
-      const gradient = ctx.createRadialGradient(x, y, 0, x, y, radius);
-      
-      // Use density-adjusted opacity for more intense glow in dense areas
-      // Inner circle has full opacity, outer circle fades to transparent
-      gradient.addColorStop(0, `rgba(${r}, ${g}, ${b}, ${opacity})`);
-      gradient.addColorStop(0.5, `rgba(${r}, ${g}, ${b}, ${opacity * this.HEATMAP_GRADIENT_MIDPOINT_OPACITY})`);
+      const gradient = offCtx.createRadialGradient(x, y, 0, x, y, radius);
+      gradient.addColorStop(0, `rgba(0, 0, 0, ${accumulationCenterOpacity})`);
+      gradient.addColorStop(0.5, `rgba(0, 0, 0, ${accumulationMidOpacity})`);
       gradient.addColorStop(1, 'rgba(0, 0, 0, 0)');
       
-      ctx.fillStyle = gradient;
-      ctx.beginPath();
-      ctx.arc(x, y, radius, 0, Math.PI * 2);
-      ctx.fill();
+      offCtx.fillStyle = gradient;
+      offCtx.beginPath();
+      offCtx.arc(x, y, radius, 0, Math.PI * 2);
+      offCtx.fill();
     });
+    
+    // Stage 2: Map density alpha to existing opacity curve
+    const img = offCtx.getImageData(0, 0, width, height);
+    const data = img.data;
+    let maxAlpha = 0;
+    for (let i = 3; i < data.length; i += 4) {
+      if (data[i] > maxAlpha) maxAlpha = data[i];
+    }
+    if (maxAlpha === 0) return;
+    
+    const minOp = this.HEATMAP_MIN_OPACITY;
+    const maxOp = this.HEATMAP_MAX_OPACITY;
+    const range = maxOp - minOp;
+    const power = this.HEATMAP_DENSITY_POWER;
+    
+    for (let i = 3; i < data.length; i += 4) {
+      const alpha = data[i];
+      if (alpha === 0) continue;
+      
+      const ratio = alpha / maxAlpha;
+      const enhanced = Math.pow(ratio, power);
+      data[i] = Math.round((minOp + (enhanced * range)) * 255);
+    }
+    
+    offCtx.putImageData(img, 0, 0);
+    
+    // Recolor density mask and blend to main canvas without removing previous zones
+    offCtx.globalCompositeOperation = 'source-in';
+    offCtx.fillStyle = `rgb(${r}, ${g}, ${b})`;
+    offCtx.fillRect(0, 0, width, height);
+    
+    const previousCompositeOperation = ctx.globalCompositeOperation;
+    ctx.globalCompositeOperation = 'source-over';
+    ctx.drawImage(off, 0, 0);
+    ctx.globalCompositeOperation = previousCompositeOperation;
   },
   
   // -----------------------------
