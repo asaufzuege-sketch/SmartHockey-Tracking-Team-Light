@@ -23,6 +23,8 @@ App.seasonMap = {
   HEATMAP_MIN_BLUR_PX: 6, // Minimum blur radius in px to avoid harsh edges on very small radii
   HEATMAP_TARGET_S_BOOST: 1.0, // Target saturation at maximum density
   HEATMAP_TARGET_L_DROP: 0.36, // Lightness drop at maximum density
+  HEATMAP_NEUTRAL_MIN_LIGHTNESS_FACTOR: 0.35, // Prevent dense neutral clusters from collapsing fully to black
+  HEATMAP_COLORED_MIN_LIGHTNESS_FACTOR: 0.4, // Keep dense colored clusters dark but still visibly colored
   HEATMAP_GRADIENT_MIDPOINT_OPACITY: 0.6, // Opacity multiplier at gradient midpoint for smoother transitions
   HEATMAP_MAX_DPR: 3, // Cap DPR to balance sharp rendering and processing cost
   
@@ -749,6 +751,8 @@ App.seasonMap = {
     offCtx.scale(dpr, dpr);
     offCtx.globalCompositeOperation = 'lighter';
     const midpointOpacity = Math.max(0, Math.min(1, this.HEATMAP_GRADIENT_MIDPOINT_OPACITY));
+    const outerOpacity = 0.045;
+    const edgeOpacity = 0.012;
     markers.forEach(marker => {
       const x = (marker.x / 100) * width;
       const y = (marker.y / 100) * height;
@@ -756,8 +760,8 @@ App.seasonMap = {
       const gradient = offCtx.createRadialGradient(x, y, 0, x, y, radius);
       gradient.addColorStop(0.0, 'rgba(0, 0, 0, 0.18)');
       gradient.addColorStop(0.35, `rgba(0, 0, 0, ${(0.18 * midpointOpacity).toFixed(3)})`);
-      gradient.addColorStop(0.7, 'rgba(0, 0, 0, 0.045)');
-      gradient.addColorStop(0.9, 'rgba(0, 0, 0, 0.012)');
+      gradient.addColorStop(0.7, `rgba(0, 0, 0, ${outerOpacity.toFixed(3)})`);
+      gradient.addColorStop(0.9, `rgba(0, 0, 0, ${edgeOpacity.toFixed(3)})`);
       gradient.addColorStop(1.0, 'rgba(0, 0, 0, 0)');
       
       offCtx.fillStyle = gradient;
@@ -870,7 +874,10 @@ App.seasonMap = {
       const enhanced = Math.pow(ratio, power);
       const opacity = minOp + (enhanced * range);
       const saturation = baseHsl[1] + ((maxTargetSaturation - baseHsl[1]) * enhanced);
-      const minLightness = Math.max(0, baseHsl[2] * (baseHsl[1] < 0.08 ? 0.35 : 0.4));
+      const minLightnessFactor = baseHsl[1] < 0.08
+        ? this.HEATMAP_NEUTRAL_MIN_LIGHTNESS_FACTOR
+        : this.HEATMAP_COLORED_MIN_LIGHTNESS_FACTOR;
+      const minLightness = Math.max(0, baseHsl[2] * minLightnessFactor);
       const lightness = Math.max(minLightness, baseHsl[2] - (targetLightnessDrop * enhanced));
       const [rNew, gNew, bNew] = hslToRgb(baseHsl[0], Math.min(1, saturation), lightness);
       data[i + 3] = Math.round(Math.min(1, opacity) * 255);
