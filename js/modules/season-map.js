@@ -13,8 +13,7 @@ App.seasonMap = {
   MOBILE_BREAKPOINT: 768,
   // Heatmap configuration
   HEATMAP_RENDER_DELAY: 150, // ms delay after marker rendering to ensure proper positioning
-  HEATMAP_RADIUS_FACTOR: 0.12, // Heatmap gradient radius as percentage of smaller dimension (desktop)
-  HEATMAP_RADIUS_FACTOR_MOBILE: 0.04, // Smaller radius for mobile devices
+  HEATMAP_RADIUS_FACTOR: 0.12, // Heatmap gradient radius as percentage of field width (consistent across all orientations)
   HEATMAP_MIN_OPACITY: 0.15, // Minimum opacity for low-density areas (raised for visible edge halos)
   HEATMAP_MAX_OPACITY: 0.98, // Maximum opacity for high-density areas
   HEATMAP_DENSITY_POWER: 1.65, // Power function exponent for density scaling (> 1 emphasizes dense centers)
@@ -35,14 +34,9 @@ App.seasonMap = {
   HEATMAP_GRADIENT_MIDPOINT_OPACITY: 0.6, // Opacity multiplier at gradient midpoint for smoother transitions
   HEATMAP_MAX_DPR: 3, // Cap DPR to balance sharp rendering and processing cost
   
-  // Helper to detect mobile viewport
-  isMobileView() {
-    return window.innerWidth <= this.MOBILE_BREAKPOINT;
-  },
-  
-  // Get appropriate heatmap radius factor based on viewport
+  // Get heatmap radius factor (single consistent value for all viewports/orientations)
   getHeatmapRadiusFactor() {
-    return this.isMobileView() ? this.HEATMAP_RADIUS_FACTOR_MOBILE : this.HEATMAP_RADIUS_FACTOR;
+    return this.HEATMAP_RADIUS_FACTOR;
   },
   
   // Helper: Get players from playerSelectionData storage  
@@ -726,9 +720,11 @@ App.seasonMap = {
   drawHeatmapZone(ctx, markers, width, height, color, dpr = 1) {
     if (markers.length === 0) return;
     
-    // Calculate radius once for all markers in this zone, using mobile-aware radius factor
+    // Calculate radius proportional to field width so circles scale consistently
+    // across all orientations. The field image is portrait-oriented (width < height),
+    // so width is always the smaller dimension and acts as the stable reference axis.
     const radiusFactor = this.getHeatmapRadiusFactor();
-    const radius = Math.min(width, height) * radiusFactor;
+    const radius = width * radiusFactor;
     
     // Parse base color to extract RGB values
     const baseColorMatch = color.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/);
