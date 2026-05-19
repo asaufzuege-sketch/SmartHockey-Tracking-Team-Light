@@ -60,7 +60,18 @@ self.addEventListener('install', event => {
           }
         }
 
-        await cache.addAll(nonImageUrls);
+        try {
+          await cache.addAll(nonImageUrls);
+        } catch (err) {
+          console.log('[SW] Cache addAll failed for non-image assets, retrying one-by-one:', err && err.message ? err.message : err);
+          await Promise.all(nonImageUrls.map(async url => {
+            try {
+              await cache.add(url);
+            } catch (addErr) {
+              console.log('[SW] Cache add failed for non-image asset:', url, addErr && addErr.message ? addErr.message : addErr);
+            }
+          }));
+        }
 
         const failedImageUrls = [];
         await Promise.all(imageUrls.map(async url => {
@@ -147,8 +158,8 @@ self.addEventListener('fetch', event => {
               }
               return response;
             })
-            .catch(() => {
-              console.log('[SW] Fetch failed for image request:', event.request.url);
+            .catch(err => {
+              console.log('[SW] Fetch failed for image request:', event.request.url, err && err.message ? err.message : err);
               return Response.error();
             });
         })
