@@ -147,7 +147,10 @@ self.addEventListener('fetch', event => {
               }
               return response;
             })
-            .catch(() => Response.error());
+            .catch(() => {
+              console.log('[SW] Fetch failed for image request:', event.request.url);
+              return Response.error();
+            });
         })
     );
   }
