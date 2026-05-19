@@ -1,5 +1,5 @@
 // KRITISCH: Feste Version, die bei JEDER Änderung erhöht werden muss!
-const CACHE_VERSION = 'v3.2.3';
+const CACHE_VERSION = 'v3.2.4';
 const CACHE_NAME = 'smarthockey-' + CACHE_VERSION;
 
 const urlsToCache = [
@@ -28,6 +28,10 @@ const urlsToCache = [
   './season_table_ui_patch.js?v=' + CACHE_VERSION,
   './season_map_momentum.js?v=' + CACHE_VERSION,
   './enhancements-wakelock.js?v=' + CACHE_VERSION,
+  './Spielfeld Overlay.png',
+  './Tor Grün.png',
+  './Tor Rot.png',
+  './icons/icon-48.png',
   './icons/icon-72.png',
   './icons/icon-96.png',
   './icons/icon-128.png',
@@ -43,9 +47,24 @@ self.addEventListener('install', event => {
   console.log('[SW] Installing new version:', CACHE_VERSION);
   event.waitUntil(
     caches.open(CACHE_NAME)
-      .then(cache => {
+      .then(async cache => {
         console.log('[SW] Caching files');
-        return cache.addAll(urlsToCache);
+        const imageUrls = urlsToCache.filter(url =>
+          /\.(png|jpg|jpeg|svg|webp)$/i.test(url)
+        );
+        const nonImageUrls = urlsToCache.filter(url =>
+          !/\.(png|jpg|jpeg|svg|webp)$/i.test(url)
+        );
+
+        await cache.addAll(nonImageUrls);
+
+        await Promise.all(imageUrls.map(async url => {
+          try {
+            await cache.add(url);
+          } catch (err) {
+            console.log('[SW] Cache add failed for image:', url, err);
+          }
+        }));
       })
       .then(() => {
         console.log('[SW] All files cached');
@@ -104,7 +123,20 @@ self.addEventListener('fetch', event => {
     // Für andere Ressourcen (Bilder, etc.): Cache-First
     event.respondWith(
       caches.match(event.request)
-        .then(response => response || fetch(event.request))
+        .then(cached => {
+          if (cached) return cached;
+          return fetch(event.request)
+            .then(response => {
+              if (response && response.ok && response.type === 'basic') {
+                const responseClone = response.clone();
+                caches.open(CACHE_NAME).then(cache => {
+                  cache.put(event.request, responseClone);
+                });
+              }
+              return response;
+            })
+            .catch(() => cached);
+        })
     );
   }
 });
