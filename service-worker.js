@@ -68,7 +68,7 @@ self.addEventListener('install', event => {
             await cache.add(url);
           } catch (err) {
             failedImageUrls.push(url);
-            console.log('[SW] Cache add failed for image:', url, err);
+            console.log('[SW] Cache add failed for image:', url, err && err.message ? err.message : err);
           }
         }));
         if (failedImageUrls.length > 0) {
@@ -139,7 +139,10 @@ self.addEventListener('fetch', event => {
               if (response && response.ok && response.type === 'basic') {
                 const responseClone = response.clone();
                 caches.open(CACHE_NAME).then(cache => {
-                  cache.put(event.request, responseClone);
+                  cache.put(event.request, responseClone)
+                    .catch(err => {
+                      console.log('[SW] Cache put failed for image request:', event.request.url, err && err.message ? err.message : err);
+                    });
                 });
               }
               return response;
