@@ -28,9 +28,9 @@ const urlsToCache = [
   './season_table_ui_patch.js?v=' + CACHE_VERSION,
   './season_map_momentum.js?v=' + CACHE_VERSION,
   './enhancements-wakelock.js?v=' + CACHE_VERSION,
-  './Spielfeld Overlay.png',
-  './Tor Grün.png',
-  './Tor Rot.png',
+  './Spielfeld%20Overlay.png',
+  './Tor%20Gr%C3%BCn.png',
+  './Tor%20Rot.png',
   './icons/icon-48.png',
   './icons/icon-72.png',
   './icons/icon-96.png',
@@ -135,7 +135,7 @@ self.addEventListener('fetch', event => {
               }
               return response;
             })
-            .catch(() => cached);
+            .catch(() => cached || Response.error());
         })
     );
   }
