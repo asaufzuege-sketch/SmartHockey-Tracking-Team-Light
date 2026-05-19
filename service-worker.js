@@ -1,6 +1,7 @@
 // KRITISCH: Feste Version, die bei JEDER Änderung erhöht werden muss!
-const CACHE_VERSION = 'v3.2.3';
+const CACHE_VERSION = 'v3.2.4';
 const CACHE_NAME = 'smarthockey-' + CACHE_VERSION;
+const IMAGE_FILE_PATTERN = /\.(png|jpg|jpeg|svg|webp)$/i;
 
 const urlsToCache = [
   './',
@@ -28,6 +29,10 @@ const urlsToCache = [
   './season_table_ui_patch.js?v=' + CACHE_VERSION,
   './season_map_momentum.js?v=' + CACHE_VERSION,
   './enhancements-wakelock.js?v=' + CACHE_VERSION,
+  './Spielfeld%20Overlay.png',
+  './Tor%20Gr%C3%BCn.png',
+  './Tor%20Rot.png',
+  './icons/icon-48.png',
   './icons/icon-72.png',
   './icons/icon-96.png',
   './icons/icon-128.png',
@@ -43,9 +48,43 @@ self.addEventListener('install', event => {
   console.log('[SW] Installing new version:', CACHE_VERSION);
   event.waitUntil(
     caches.open(CACHE_NAME)
-      .then(cache => {
+      .then(async cache => {
         console.log('[SW] Caching files');
-        return cache.addAll(urlsToCache);
+        const imageUrls = [];
+        const nonImageUrls = [];
+        for (const url of urlsToCache) {
+          if (IMAGE_FILE_PATTERN.test(url)) {
+            imageUrls.push(url);
+          } else {
+            nonImageUrls.push(url);
+          }
+        }
+
+        try {
+          await cache.addAll(nonImageUrls);
+        } catch (err) {
+          console.log('[SW] Cache addAll failed for non-image assets, retrying one-by-one:', err && err.message ? err.message : err);
+          await Promise.all(nonImageUrls.map(async url => {
+            try {
+              await cache.add(url);
+            } catch (addErr) {
+              console.log('[SW] Cache add failed for non-image asset:', url, addErr && addErr.message ? addErr.message : addErr);
+            }
+          }));
+        }
+
+        const failedImageUrls = [];
+        await Promise.all(imageUrls.map(async url => {
+          try {
+            await cache.add(url);
+          } catch (err) {
+            failedImageUrls.push(url);
+            console.log('[SW] Cache add failed for image:', url, err && err.message ? err.message : err);
+          }
+        }));
+        if (failedImageUrls.length > 0) {
+          console.log('[SW] Images failed to cache during install:', failedImageUrls);
+        }
       })
       .then(() => {
         console.log('[SW] All files cached');
@@ -104,7 +143,26 @@ self.addEventListener('fetch', event => {
     // Für andere Ressourcen (Bilder, etc.): Cache-First
     event.respondWith(
       caches.match(event.request)
-        .then(response => response || fetch(event.request))
+        .then(cached => {
+          if (cached) return cached;
+          return fetch(event.request)
+            .then(response => {
+              if (response && response.ok && response.type === 'basic') {
+                const responseClone = response.clone();
+                caches.open(CACHE_NAME).then(cache => {
+                  cache.put(event.request, responseClone)
+                    .catch(err => {
+                      console.log('[SW] Cache put failed for image request:', event.request.url, err && err.message ? err.message : err);
+                    });
+                });
+              }
+              return response;
+            })
+            .catch(err => {
+              console.log('[SW] Fetch failed for image request:', event.request.url, err && err.message ? err.message : err);
+              return Response.error();
+            });
+        })
     );
   }
 });
