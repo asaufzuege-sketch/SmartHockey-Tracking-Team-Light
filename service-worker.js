@@ -1,6 +1,7 @@
 // KRITISCH: Feste Version, die bei JEDER Änderung erhöht werden muss!
 const CACHE_VERSION = 'v3.2.4';
 const CACHE_NAME = 'smarthockey-' + CACHE_VERSION;
+const IMAGE_FILE_PATTERN = /\.(png|jpg|jpeg|svg|webp)$/i;
 
 const urlsToCache = [
   './',
@@ -49,22 +50,30 @@ self.addEventListener('install', event => {
     caches.open(CACHE_NAME)
       .then(async cache => {
         console.log('[SW] Caching files');
-        const imageUrls = urlsToCache.filter(url =>
-          /\.(png|jpg|jpeg|svg|webp)$/i.test(url)
-        );
-        const nonImageUrls = urlsToCache.filter(url =>
-          !/\.(png|jpg|jpeg|svg|webp)$/i.test(url)
-        );
+        const imageUrls = [];
+        const nonImageUrls = [];
+        for (const url of urlsToCache) {
+          if (IMAGE_FILE_PATTERN.test(url)) {
+            imageUrls.push(url);
+          } else {
+            nonImageUrls.push(url);
+          }
+        }
 
         await cache.addAll(nonImageUrls);
 
+        const failedImageUrls = [];
         await Promise.all(imageUrls.map(async url => {
           try {
             await cache.add(url);
           } catch (err) {
+            failedImageUrls.push(url);
             console.log('[SW] Cache add failed for image:', url, err);
           }
         }));
+        if (failedImageUrls.length > 0) {
+          console.log('[SW] Images failed to cache during install:', failedImageUrls);
+        }
       })
       .then(() => {
         console.log('[SW] All files cached');
@@ -135,7 +144,7 @@ self.addEventListener('fetch', event => {
               }
               return response;
             })
-            .catch(() => cached || Response.error());
+            .catch(() => Response.error());
         })
     );
   }
