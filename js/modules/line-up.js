@@ -1079,29 +1079,45 @@ App.lineUp = {
     if (centers[2]) this.lineUpData['C_line3'] = centers[2].name;
     if (centers[3]) this.lineUpData['C_line4'] = centers[3].name;
     
-    // Wings: Ausgeglichene Verteilung
-    // LW: #1, #2, #3, #5 Wings
-    // RW: #4, #6, #7, #8 Wings (schwächere auf stärkeren Linien für Balance)
-    if (wings[0]) this.lineUpData['LW_line1'] = wings[0].name;
-    if (wings[1]) this.lineUpData['LW_line2'] = wings[1].name;
-    if (wings[2]) this.lineUpData['LW_line3'] = wings[2].name;
-    if (wings[4]) this.lineUpData['LW_line4'] = wings[4].name;
-    
-    if (wings[3]) this.lineUpData['RW_line1'] = wings[3].name;  // #4 Wing auf Linie 1 (Balance)
-    if (wings[5]) this.lineUpData['RW_line2'] = wings[5].name;  // #6 Wing auf Linie 2
-    if (wings[6]) this.lineUpData['RW_line3'] = wings[6].name;  // #7 Wing auf Linie 3
-    if (wings[7]) this.lineUpData['RW_line4'] = wings[7].name;  // #8 Wing auf Linie 4
+    // Wings: linienweise, bei vollem Kader wie bisher balanced
+    if (wings.length >= 4) {
+      if (wings[0]) this.lineUpData['LW_line1'] = wings[0].name;
+      if (wings[3]) this.lineUpData['RW_line1'] = wings[3].name;
+      if (wings[1]) this.lineUpData['LW_line2'] = wings[1].name;
+      if (wings[2]) this.lineUpData['RW_line2'] = wings[2].name;
+      if (wings[4]) this.lineUpData['LW_line3'] = wings[4].name;
+      if (wings[5]) this.lineUpData['RW_line3'] = wings[5].name;
+      if (wings[6]) this.lineUpData['LW_line4'] = wings[6].name;
+      if (wings[7]) this.lineUpData['RW_line4'] = wings[7].name;
+    } else {
+      const nW = wings.length;
+      const halfW = Math.ceil(nW / 2);
+      for (let i = 0; i < halfW; i++) {
+        const left = wings[i];
+        const right = wings[nW - 1 - i];
+        if (left && i < 4) this.lineUpData[`LW_line${i+1}`] = left.name;
+        if (right && right !== left && i < 4) this.lineUpData[`RW_line${i+1}`] = right.name;
+      }
+    }
     
     // === VERTEIDIGER VERTEILUNG (ausgeglichen) ===
-    // Top 3 Verteidiger auf DL 1, 2, 3 verteilen
-    // Verteidiger 4-6 als Partner auf DR (für Balance)
-    if (defense[0]) this.lineUpData['DL_pair1'] = defense[0].name;
-    if (defense[1]) this.lineUpData['DL_pair2'] = defense[1].name;
-    if (defense[2]) this.lineUpData['DL_pair3'] = defense[2].name;
-    
-    if (defense[3]) this.lineUpData['DR_pair1'] = defense[3].name;  // #4 mit #1
-    if (defense[4]) this.lineUpData['DR_pair2'] = defense[4].name;  // #5 mit #2
-    if (defense[5]) this.lineUpData['DR_pair3'] = defense[5].name;  // #6 mit #3
+    if (defense.length >= 6) {
+      if (defense[0]) this.lineUpData['DL_pair1'] = defense[0].name;
+      if (defense[3]) this.lineUpData['DR_pair1'] = defense[3].name;
+      if (defense[1]) this.lineUpData['DL_pair2'] = defense[1].name;
+      if (defense[4]) this.lineUpData['DR_pair2'] = defense[4].name;
+      if (defense[2]) this.lineUpData['DL_pair3'] = defense[2].name;
+      if (defense[5]) this.lineUpData['DR_pair3'] = defense[5].name;
+    } else {
+      const nD = defense.length;
+      const halfD = Math.ceil(nD / 2);
+      for (let i = 0; i < halfD; i++) {
+        const left = defense[i];
+        const right = defense[nD - 1 - i];
+        if (left && i < 3) this.lineUpData[`DL_pair${i+1}`] = left.name;
+        if (right && right !== left && i < 3) this.lineUpData[`DR_pair${i+1}`] = right.name;
+      }
+    }
     
     // Fill remaining spots with players without positions
     this.fillRemainingWithNoPositionPlayers(noPosition);
