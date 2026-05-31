@@ -171,7 +171,7 @@ App.goalMap = {
         if (lastMarker) {
           lastMarker.dataset.zone = zone;
         }
-        return lastMarker || null;
+        return lastMarker;
       };
       
       const placeMarker = (pos, long, forceGrey = false) => {
@@ -1073,7 +1073,10 @@ App.goalMap = {
   },
 
   countTrackedOpponentGoalMarkers(root = document) {
-    return root ? root.querySelectorAll('#goalRedBox .marker-dot[data-opponent-goal-shot="true"]').length : 0;
+    if (!root) return 0;
+    return Array.from(root.querySelectorAll('#goalRedBox .marker-dot'))
+      .filter(marker => marker.dataset.opponentGoalShot === 'true')
+      .length;
   },
 
   adjustOpponentShots(delta) {
@@ -1097,8 +1100,8 @@ App.goalMap = {
 
   markLatestOpponentGoalMarker() {
     const goalRedBox = document.getElementById('goalRedBox');
-    const markers = goalRedBox?.querySelectorAll('.marker-dot');
-    const lastMarker = markers && markers.length > 0 ? markers[markers.length - 1] : null;
+    const markers = goalRedBox?.querySelectorAll('.marker-dot') || [];
+    const lastMarker = markers.length > 0 ? markers[markers.length - 1] : null;
     if (!lastMarker) return;
 
     lastMarker.dataset.opponentGoalShot = 'true';
