@@ -157,6 +157,11 @@ App.markerHandler = {
     if (interactive) {
       dot.addEventListener("click", (ev) => {
         ev.stopPropagation();
+        if (dot.dataset.opponentGoalShot === 'true' &&
+            App.goalMap &&
+            typeof App.goalMap.adjustOpponentShots === 'function') {
+          App.goalMap.adjustOpponentShots(-1);
+        }
         dot.remove();
         // Save markers after removal
         if (App.goalMap && typeof App.goalMap.saveMarkers === 'function') {

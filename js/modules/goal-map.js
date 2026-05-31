@@ -171,6 +171,7 @@ App.goalMap = {
         if (lastMarker) {
           lastMarker.dataset.zone = zone;
         }
+        return lastMarker;
       };
       
       const placeMarker = (pos, long, forceGrey = false) => {
@@ -968,7 +969,8 @@ App.goalMap = {
         const bg = dot.style.backgroundColor || "";
         const playerName = dot.dataset.player || null;
         const zone = dot.dataset.zone || null;
-        markers.push({ xPct: xPctImage, yPct: yPctImage, color: bg, player: playerName, zone: zone });
+        const opponentGoalShot = dot.dataset.opponentGoalShot === 'true';
+        markers.push({ xPct: xPctImage, yPct: yPctImage, color: bg, player: playerName, zone: zone, opponentGoalShot: opponentGoalShot });
       });
       return markers;
     });
@@ -1039,6 +1041,9 @@ App.goalMap = {
             }
           }
         }
+        if (marker.opponentGoalShot) {
+          lastDot.dataset.opponentGoalShot = 'true';
+        }
       });
     });
     
@@ -1065,6 +1070,42 @@ App.goalMap = {
       const goalieNames = goalies.map(g => g.name);
       this.filterByGoalies(goalieNames);
     }
+  },
+
+  countTrackedOpponentGoalMarkers(root = document) {
+    if (!root) return 0;
+    return Array.from(root.querySelectorAll('#goalRedBox .marker-dot'))
+      .filter(marker => marker.dataset.opponentGoalShot === 'true')
+      .length;
+  },
+
+  adjustOpponentShots(delta) {
+    const teamId = App.helpers.getCurrentTeamId();
+    const shotTotalCell = App.statsTable?.container?.querySelector('.total-cell[data-cat="Shot"]');
+    const currentDomValue = Number(shotTotalCell?.dataset?.opp);
+    const currentStoredValue = Number(AppStorage.getItem(`opponentShots_${teamId}`));
+    const current = Number.isFinite(currentDomValue)
+      ? currentDomValue
+      : (Number.isFinite(currentStoredValue) ? currentStoredValue : 0);
+    const next = Math.max(0, current + delta);
+
+    AppStorage.setItem(`opponentShots_${teamId}`, String(next));
+    if (shotTotalCell) {
+      shotTotalCell.dataset.opp = String(next);
+    }
+    if (App.statsTable && typeof App.statsTable.updateTotals === 'function') {
+      App.statsTable.updateTotals();
+    }
+  },
+
+  markLatestOpponentGoalMarker() {
+    const goalRedBox = document.getElementById('goalRedBox');
+    const markers = goalRedBox?.querySelectorAll('.marker-dot') || [];
+    const lastMarker = markers.length > 0 ? markers[markers.length - 1] : null;
+    if (!lastMarker) return;
+
+    lastMarker.dataset.opponentGoalShot = 'true';
+    this.saveMarkers();
   },
   
   // Helper function to calculate display value excluding _anonymous when real players exist
@@ -1836,6 +1877,7 @@ App.goalMap = {
     
     const keep = confirm("Game exported to Season Map. Keep data in Goal Map? (OK = Yes)");
     if (!keep) {
+      this.adjustOpponentShots(-this.countTrackedOpponentGoalMarkers(document.querySelector("#torbildPage")));
       document.querySelectorAll("#torbildPage .marker-dot").forEach(d => d.remove());
       document.querySelectorAll("#torbildPage .time-btn").forEach(btn => btn.textContent = "0");
       AppStorage.removeItem(`timeData_${teamId}`);
@@ -1875,6 +1917,7 @@ App.goalMap = {
   reset() {
     if (!confirm("⚠️ Goal Map zurücksetzen (Marker + Timeboxen)?")) return;
     
+    this.adjustOpponentShots(-this.countTrackedOpponentGoalMarkers(document.querySelector("#torbildPage")));
     document.querySelectorAll("#torbildPage .marker-dot").forEach(d => d.remove());
     document.querySelectorAll("#torbildPage .time-btn").forEach(b => b.textContent = "0");
     
