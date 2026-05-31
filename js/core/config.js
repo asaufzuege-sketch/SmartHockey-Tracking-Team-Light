@@ -365,18 +365,24 @@ const App = {
       }
     }
 
-    // Increment opponent-shots counter for conceded shot workflow
-    if (workflowType === 'conceded' && eventType === 'shot') {
-      const current = Number(AppStorage.getItem(`opponentShots_${teamId}`)) || 0;
-      AppStorage.setItem(`opponentShots_${teamId}`, String(current + 1));
-      // Sync the in-DOM dataset so updateTotals() picks up the new value
-      if (this.statsTable && this.statsTable.container) {
-        const shotCell = this.statsTable.container.querySelector('.total-cell[data-cat="Shot"]');
-        if (shotCell) {
-          shotCell.dataset.opp = String(current + 1);
+    // Conceded shots and conceded goals both count as opponent shots
+    if (workflowType === 'conceded' && (eventType === 'shot' || eventType === 'goal')) {
+      if (this.goalMap && typeof this.goalMap.adjustOpponentShots === 'function') {
+        this.goalMap.adjustOpponentShots(1);
+        if (eventType === 'goal' && typeof this.goalMap.markLatestOpponentGoalMarker === 'function') {
+          this.goalMap.markLatestOpponentGoalMarker();
         }
-        if (typeof this.statsTable.updateTotals === 'function') {
-          this.statsTable.updateTotals();
+      } else {
+        const current = Number(AppStorage.getItem(`opponentShots_${teamId}`)) || 0;
+        AppStorage.setItem(`opponentShots_${teamId}`, String(current + 1));
+        if (this.statsTable && this.statsTable.container) {
+          const shotCell = this.statsTable.container.querySelector('.total-cell[data-cat="Shot"]');
+          if (shotCell) {
+            shotCell.dataset.opp = String(current + 1);
+          }
+          if (typeof this.statsTable.updateTotals === 'function') {
+            this.statsTable.updateTotals();
+          }
         }
       }
     }

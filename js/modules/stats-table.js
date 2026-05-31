@@ -606,11 +606,15 @@ App.statsTable = {
       }
     });
 
-    // Ice time total
+    // Ice time average
     const timeTotal = this.container.querySelector(".total-cell[data-cat='Time']");
     if (timeTotal) {
-      const totalSec = fieldPlayers.reduce((sum, p) => sum + (App.data.playerTimes[p.name] || 0), 0);
-      timeTotal.textContent = App.helpers.formatTimeMMSS(totalSec);
+      const timeValues = fieldPlayers
+        .map(p => App.data.playerTimes[p.name])
+        .filter(sec => Number.isFinite(sec) && sec > 0);
+      const totalSec = timeValues.reduce((sum, sec) => sum + sec, 0);
+      const averageSec = timeValues.length > 0 ? Math.round(totalSec / timeValues.length) : 0;
+      timeTotal.textContent = `Ø ${App.helpers.formatTimeMMSS(averageSec)}`;
     }
   },
 
