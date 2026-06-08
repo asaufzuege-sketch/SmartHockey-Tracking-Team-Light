@@ -1189,13 +1189,37 @@ setStickyOffsets() {
     
     statCell._tapState = {
       lastTapTime: 0,
-      tapTimeout: null
+      tapTimeout: null,
+      moved: false,
+      startX: 0,
+      startY: 0
     };
     const state = statCell._tapState;
     statCell.dataset.handlersAttached = 'true';
     
+    // MOBILE: Scroll-vs-Tap guard
+    statCell.addEventListener('touchstart', (e) => {
+      const t = e.touches[0];
+      state.startX = t.clientX;
+      state.startY = t.clientY;
+      state.moved = false;
+    }, { passive: true });
+    
+    statCell.addEventListener('touchmove', (e) => {
+      const t = e.touches[0];
+      if (Math.hypot(t.clientX - state.startX, t.clientY - state.startY) > 10) {
+        state.moved = true;
+        if (state.tapTimeout) {
+          clearTimeout(state.tapTimeout);
+          state.tapTimeout = null;
+          state.lastTapTime = 0;
+        }
+      }
+    }, { passive: true });
+    
     // MOBILE: Touch-Handler mit preventDefault/stopPropagation
     statCell.addEventListener('touchend', (e) => {
+      if (state.moved) return;
       e.preventDefault();
       e.stopPropagation();
       
