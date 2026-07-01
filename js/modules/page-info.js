@@ -166,7 +166,7 @@ Modes (switchable via Mode button):
 
 • Balanced: Сбалансированный состав. Предустановка через AI-логику и формулы.
 • Power: Сильнейший состав, специальная расстановка для решающих моментов. Предустановка через AI-логику и формулы.
-• Manuell: Свободно создаваемый состав, назначение по клику на позицию.
+• Ручной: Свободно создаваемый состав, назначение по клику на позицию.
 • „Player Out": Отметить игрока как OUT (при удалении). Состав автоматически корректируется.`,
             
             sv: `📋 Line Up
@@ -175,7 +175,7 @@ Lägen (växlingsbart via Lägesknapp):
 
 • Balanced: Balanserad Line Up. Förinställd av AI-logik och formler.
 • Power: Starkaste Line Up, specialuppställning för avgörande scener. Förinställd av AI-logik och formler.
-• Manuell: Fritt skapbar Line Up genom att klicka på position för att tilldela.
+• Manuellt: Fritt skapbar Line Up genom att klicka på position för att tilldela.
 • "Player Out": Markera spelare som OUT (vid utvisning). Line Up justeras automatiskt.`,
             
             fi: `📋 Line Up
@@ -184,7 +184,7 @@ Tilat (vaihdettavissa Tila-painikkeella):
 
 • Balanced: Tasapainoinen kokoonpano. AI-logiikan ja kaavojen esiasetus.
 • Power: Vahvin kokoonpano, erikoisasettelu ratkaiseviin tilanteisiin. AI-logiikan ja kaavojen esiasetus.
-• Manuell: Vapaasti luotava kokoonpano klikkaamalla paikkaa.
+• Manuaalinen: Vapaasti luotava kokoonpano klikkaamalla paikkaa.
 • "Player Out": Merkitse pelaaja OUT (rangaistuksessa). Kokoonpano mukautuu automaattisesti.`,
             
             fr: `📋 Line Up
@@ -193,58 +193,250 @@ Modes (commutables via le bouton Mode):
 
 • Balanced: Line Up équilibré. Prédéfini par la logique AI et les formules.
 • Power: Line Up le plus fort, configuration spéciale pour les scènes décisives. Prédéfini par la logique AI et les formules.
-• Manuell: Line Up librement créable en cliquant sur la position à attribuer.
+• Manuel : Line Up librement créable en cliquant sur la position à attribuer.
 • "Player Out": Marquer le joueur comme OUT (en cas de pénalité). Le Line Up est automatiquement ajusté.`
         },
         
         'season': {
-            de: `📊 Season Table
+            de: `📊 Season
 
-• Feldspieler-Saisonwerte (Goalies ausgeblendet).
-• Klick/Doppelklick auf Werte: +1/–1 (bei +/- auch negativ).
-• Long-Press auf Time-Zelle: Zusätzliche Zeit kann manuell eingegeben werden.
-• Positionsfilter (Dropdown „Pos.").
-• MVP Points/MVP = Wertvollster Spieler gemäss analysierter Statistik (AI-Formel)`,
+Auf der Season-Seite siehst du die kumulierten Statistiken aller Spiele, die du per „Export Season" hinzugefügt hast.
+
+Bedienung:
+• Klick / Doppelklick auf Werte: +1 / –1 (bei +/- auch negativ)
+• Long-Press auf Time-Zelle: Zeit manuell eingeben
+• Positionsfilter (Dropdown „Pos."): C, W, D
+• Spaltenkopf klicken: Sortierung auf/absteigend
+
+🏒 Player Stats — Abkürzungen
+• Games — Anzahl gespielter Spiele
+• Goals — erzielte Tore
+• Assists — Vorlagen (Assists)
+• Points — Goals + Assists
+• +/- — Plus/Minus: Tore für vs. gegen die eigene Mannschaft während der Eiszeit des Spielers
+• Ø +/- — Durchschnittliches +/- pro Spiel
+• Shots — Torschüsse
+• Shots/Game — Schüsse pro Spiel
+• Shots % — Trefferquote: Goals ÷ Shots (Effizienz vor dem Tor)
+• Goals/Game — Tore pro Spiel
+• Points/Game — Punkte pro Spiel (Scoring-Rate)
+• Penalty — Strafminuten
+• Goal Value — gewichtete Torqualität (starke Gegner zählen mehr, siehe Goal Value-Seite)
+• FaceOffs — Bullys insgesamt
+• FaceOffs Won — gewonnene Bullys
+• FaceOffs % — Bully-Erfolgsquote
+• SF/min — Shots For pro Minute Eiszeit: Team-Schüsse für uns während der Eiszeit des Spielers (offensive Präsenz)
+• SA/min — Shots Against pro Minute Eiszeit: Team-Schüsse gegen uns während der Eiszeit des Spielers (defensive Präsenz — niedriger ist besser)
+• Shot Share % — Puckbesitz-Kennzahl (Corsi-ähnlich): Anteil eigener Schüsse an allen Schüssen; > 50 % = Team dominiert das Spiel, wenn dieser Spieler auf dem Eis ist
+• MVP — Rang in der MVP-Wertung (1 = wertvollster Spieler)
+• MVP Points — Punktzahl der MVP-Formel (KI-gestützt: Tore, Assists, +/-, Shots %, Goal Value, Spielzeit)
+
+Bewertung:
+• Points/Game und Shots % zeigen die individuelle Klasse
+• +/- und Ø +/- zeigen Zwei-Wege-Spiel und Team-Beitrag
+• Goal Value bewertet gegen wen die Tore fielen
+• SF/min, SA/min und Shot Share % zeigen den Team-Effekt bei Eiszeit des Spielers
+• MVP Points kombiniert alles zu einer Gesamtwertung`,
             
-            en: `📊 Season Table
+            en: `📊 Season
 
-• Field player season values (goalies hidden).
-• Click/double-click on values: +1/–1 (+/- can be negative).
-• Long-press on time cell: Additional time can be entered manually.
-• Position filter (dropdown "Pos.").
-• MVP Points/MVP = Most Valuable Player based on analyzed statistics (AI formula)`,
+The Season page shows cumulative statistics for all games you have added via "Export Season".
+
+Controls:
+• Click / Double-click on values: +1 / –1 (+/- can also be negative)
+• Long-press on time cell: Enter time manually
+• Position filter (dropdown "Pos."): C, W, D
+• Click column header: Sort ascending/descending
+
+🏒 Player Stats — Abbreviations
+• Games — Number of games played
+• Goals — Goals scored
+• Assists — Assists
+• Points — Goals + Assists
+• +/- — Plus/Minus: Goals for vs. against your team while the player is on the ice
+• Ø +/- — Average +/- per game
+• Shots — Shots on goal
+• Shots/Game — Shots per game
+• Shots % — Shot efficiency: Goals ÷ Shots (efficiency in front of goal)
+• Goals/Game — Goals per game
+• Points/Game — Points per game (scoring rate)
+• Penalty — Penalty minutes
+• Goal Value — Weighted goal quality (strong opponents count more, see Goal Value page)
+• FaceOffs — Total face-offs
+• FaceOffs Won — Face-offs won
+• FaceOffs % — Face-off win percentage
+• SF/min — Shots For per minute of ice time: Team shots for us during the player's ice time (offensive presence)
+• SA/min — Shots Against per minute of ice time: Team shots against us during the player's ice time (defensive presence — lower is better)
+• Shot Share % — Puck possession metric (Corsi-like): Share of own shots among all shots; > 50% = team dominates when this player is on the ice
+• MVP — Rank in MVP rating (1 = most valuable player)
+• MVP Points — Score of the MVP formula (AI-assisted: goals, assists, +/-, Shots %, Goal Value, ice time)
+
+Evaluation:
+• Points/Game and Shots % show individual class
+• +/- and Ø +/- show two-way play and team contribution
+• Goal Value evaluates against whom the goals were scored
+• SF/min, SA/min and Shot Share % show the team effect during the player's ice time
+• MVP Points combines everything into an overall rating`,
             
-            ru: `📊 Season Table
+            ru: `📊 Season
 
-• Сезонные показатели полевых игроков (вратари скрыты).
-• Клик/двойной клик по значениям: +1/–1 (+/- может быть отрицательным).
-• Долгое нажатие на ячейку времени: Дополнительное время можно ввести вручную.
-• Фильтр позиции (выпадающий «Pos.»).
-• MVP Points/MVP = Самый ценный игрок по анализу статистики (AI-формула)`,
+На странице Season отображается накопленная статистика всех игр, добавленных через «Export Season».
+
+Управление:
+• Клик / Двойной клик по значениям: +1 / –1 (для +/- также отрицательные)
+• Долгое нажатие на ячейку времени: ввести время вручную
+• Фильтр позиции (выпадающий «Pos.»): C, W, D
+• Клик по заголовку столбца: сортировка по возрастанию/убыванию
+
+🏒 Player Stats — Обозначения
+• Games — количество сыгранных игр
+• Goals — забитые голы
+• Assists — голевые передачи
+• Points — Goals + Assists
+• +/- — Плюс/Минус: голы за vs. против своей команды во время пребывания игрока на льду
+• Ø +/- — Среднее +/- за игру
+• Shots — броски по воротам
+• Shots/Game — броски за игру
+• Shots % — точность бросков: Goals ÷ Shots (эффективность перед воротами)
+• Goals/Game — голы за игру
+• Points/Game — очки за игру (результативность)
+• Penalty — штрафные минуты
+• Goal Value — взвешенное качество голов (против сильных соперников ценится выше, см. страницу Goal Value)
+• FaceOffs — всего вбрасываний
+• FaceOffs Won — выигранных вбрасываний
+• FaceOffs % — процент выигранных вбрасываний
+• SF/min — Shots For в минуту ледового времени: броски команды за нас во время льда игрока (атакующее присутствие)
+• SA/min — Shots Against в минуту ледового времени: броски соперника во время льда игрока (защитное присутствие — чем ниже, тем лучше)
+• Shot Share % — показатель владения шайбой (аналог Corsi): доля собственных бросков среди всех; > 50 % = команда доминирует, когда игрок на льду
+• MVP — место в рейтинге MVP (1 = самый ценный игрок)
+• MVP Points — баллы по формуле MVP (AI: голы, передачи, +/-, Shots %, Goal Value, ледовое время)
+
+Оценка:
+• Points/Game и Shots % показывают индивидуальный класс
+• +/- и Ø +/- показывают игру в обе стороны и вклад в команду
+• Goal Value оценивает, против кого были забиты голы
+• SF/min, SA/min и Shot Share % показывают командный эффект при льду игрока
+• MVP Points объединяет всё в общую оценку`,
             
-            sv: `📊 Season Table
+            sv: `📊 Season
 
-• Utespelares säsongsvärden (målvakter dolda).
-• Klick/dubbelklick på värden: +1/–1 (+/- kan vara negativt).
-• Långtryck på tidcell: Extra tid kan matas in manuellt.
-• Positionsfilter (dropdown "Pos.").
-• MVP Points/MVP = Mest värdefulla spelaren baserat på analyserad statistik (AI-formel)`,
+Season-sidan visar de kumulerade statistiken för alla matcher du har lagt till via "Export Season".
+
+Hantering:
+• Klick / Dubbelklick på värden: +1 / –1 (för +/- även negativt)
+• Långt tryck på tidcell: ange tid manuellt
+• Positionsfilter (dropdown "Pos."): C, W, D
+• Klicka på kolumnhuvud: sortering stigande/fallande
+
+🏒 Player Stats — Förkortningar
+• Games — antal spelade matcher
+• Goals — gjorda mål
+• Assists — målgivande passningar
+• Points — Goals + Assists
+• +/- — Plus/Minus: mål för vs. mot det egna laget medan spelaren är på isen
+• Ø +/- — Genomsnittligt +/- per match
+• Shots — skott på mål
+• Shots/Game — skott per match
+• Shots % — träffsäkerhet: Goals ÷ Shots (effektivitet framför målet)
+• Goals/Game — mål per match
+• Points/Game — poäng per match (poängproduktion)
+• Penalty — utvisningstid i minuter
+• Goal Value — viktat målvärde (starka motståndare väger mer, se Goal Value-sidan)
+• FaceOffs — totalt antal ansiktningar
+• FaceOffs Won — vunna ansiktningar
+• FaceOffs % — ansiktningsprocent
+• SF/min — Shots For per minuts istid: lagets skott för oss under spelarens istid (offensiv närvaro)
+• SA/min — Shots Against per minuts istid: lagets skott mot oss under spelarens istid (defensiv närvaro — lägre är bättre)
+• Shot Share % — puckinnehavsmätare (Corsi-liknande): andel egna skott av alla skott; > 50 % = laget dominerar när denna spelare är på isen
+• MVP — placering i MVP-rankingen (1 = mest värdefull spelare)
+• MVP Points — poäng i MVP-formeln (AI-stödd: mål, assist, +/-, Shots %, Goal Value, istid)
+
+Utvärdering:
+• Points/Game och Shots % visar individuell klass
+• +/- och Ø +/- visar tvåvägsspel och lagbidrag
+• Goal Value bedömer mot vem målen gjordes
+• SF/min, SA/min och Shot Share % visar lageffekten under spelarens istid
+• MVP Points kombinerar allt till en samlad värdering`,
             
-            fi: `📊 Season Table
+            fi: `📊 Season
 
-• Kenttäpelaajien kauden arvot (maalivahdit piilotettu).
-• Klikkaus/tuplaklikkaus arvoihin: +1/–1 (+/- voi olla negatiivinen).
-• Pitkä painallus aikasoluun: Lisäaika voidaan syöttää manuaalisesti.
-• Pelipaikkassuodatin (pudotusvalikko "Pos.").
-• MVP Points/MVP = Arvokkain pelaaja analysoidun tilaston perusteella (tekoälykaava)`,
+Season-sivulla näet kaikkien pelien kumulatiiviset tilastot, jotka olet lisännyt "Export Season" -toiminnolla.
+
+Käyttö:
+• Klikkaus / Tuplaklikkaus arvoihin: +1 / –1 (+/- myös negatiivinen)
+• Pitkä painallus aikasoluun: syötä aika manuaalisesti
+• Pelipaikkassuodatin (pudotusvalikko "Pos."): C, W, D
+• Klikkaa sarakkeen otsikkoa: lajittelu nousevasti/laskevasti
+
+🏒 Player Stats — Lyhenteet
+• Games — pelattujen pelien määrä
+• Goals — tehdyt maalit
+• Assists — maalinsyötöt
+• Points — Goals + Assists
+• +/- — Plus/Miinus: maalit puolesta vs. vastaan oman joukkueen osalta pelaajan jääaikana
+• Ø +/- — Keskimääräinen +/- per peli
+• Shots — laukaukset maaliin
+• Shots/Game — laukaukset per peli
+• Shots % — laukausteho: Goals ÷ Shots (tehokkuus maalin edessä)
+• Goals/Game — maalit per peli
+• Points/Game — pisteet per peli (pistetuotanto)
+• Penalty — rangaistusminuutit
+• Goal Value — painotettu maaliarvo (vahvat vastustajat lasketaan enemmän, katso Goal Value -sivu)
+• FaceOffs — aloitukset yhteensä
+• FaceOffs Won — voitetut aloitukset
+• FaceOffs % — aloitusten voittoprosentti
+• SF/min — Shots For per jääaikaminuutti: joukkueen laukaukset meidän puolesta pelaajan jääaikana (hyökkäyspresenssi)
+• SA/min — Shots Against per jääaikaminuutti: joukkueen laukaukset meitä vastaan pelaajan jääaikana (puolustuspresenssi — pienempi on parempi)
+• Shot Share % — kiekon hallintamittari (Corsi-tyyppinen): omien laukausten osuus kaikista laukauksista; > 50 % = joukkue hallitsee, kun tämä pelaaja on jäällä
+• MVP — sijoitus MVP-rankingissa (1 = arvokkain pelaaja)
+• MVP Points — MVP-kaavan pisteet (tekoälyavusteinen: maalit, syötöt, +/-, Shots %, Goal Value, jääaika)
+
+Arviointi:
+• Points/Game ja Shots % osoittavat yksilöllisen tason
+• +/- ja Ø +/- osoittavat kahdensuuntaisen pelin ja joukkuepanoksen
+• Goal Value arvioi, ketä vastaan maalit tehtiin
+• SF/min, SA/min ja Shot Share % osoittavat joukkuevaikutuksen pelaajan jääaikana
+• MVP Points yhdistää kaiken kokonaisarvioksi`,
             
-            fr: `📊 Season Table
+            fr: `📊 Season
 
-• Valeurs saisonnières des joueurs de champ (gardiens cachés).
-• Clic/double-clic sur les valeurs: +1/–1 (+/- peut être négatif).
-• Pression longue sur la cellule de temps: Le temps supplémentaire peut être saisi manuellement.
-• Filtre de position (menu déroulant "Pos.").
-• MVP Points/MVP = Joueur le plus précieux selon les statistiques analysées (formule IA)`
+La page Season affiche les statistiques cumulées de tous les matchs que tu as ajoutés via «Export Season».
+
+Utilisation:
+• Clic / Double-clic sur les valeurs: +1 / –1 (pour +/- aussi négatif)
+• Appui long sur la cellule de temps: saisir le temps manuellement
+• Filtre de position (menu déroulant «Pos.»): C, W, D
+• Cliquer sur l'en-tête de colonne: tri croissant/décroissant
+
+🏒 Player Stats — Abréviations
+• Games — nombre de matchs joués
+• Goals — buts marqués
+• Assists — passes décisives
+• Points — Goals + Assists
+• +/- — Plus/Moins: buts pour vs. contre sa propre équipe pendant le temps de glace du joueur
+• Ø +/- — Moyenne +/- par match
+• Shots — tirs cadrés
+• Shots/Game — tirs par match
+• Shots % — taux de réussite: Goals ÷ Shots (efficacité devant le but)
+• Goals/Game — buts par match
+• Points/Game — points par match (rythme offensif)
+• Penalty — minutes de pénalité
+• Goal Value — qualité pondérée des buts (adversaires forts comptent davantage, voir page Goal Value)
+• FaceOffs — mises en jeu au total
+• FaceOffs Won — mises en jeu gagnées
+• FaceOffs % — pourcentage de mises en jeu gagnées
+• SF/min — Shots For par minute de temps de glace: tirs de l'équipe pour nous pendant le temps de glace du joueur (présence offensive)
+• SA/min — Shots Against par minute de temps de glace: tirs adverses pendant le temps de glace du joueur (présence défensive — plus bas est mieux)
+• Shot Share % — indicateur de possession de rondelle (similaire à Corsi): part des tirs propres parmi tous les tirs; > 50 % = l'équipe domine quand ce joueur est sur la glace
+• MVP — classement dans l'évaluation MVP (1 = joueur le plus précieux)
+• MVP Points — score de la formule MVP (assisté par IA: buts, passes, +/-, Shots %, Goal Value, temps de glace)
+
+Évaluation:
+• Points/Game et Shots % montrent la classe individuelle
+• +/- et Ø +/- montrent le jeu dans les deux sens et la contribution à l'équipe
+• Goal Value évalue contre qui les buts ont été marqués
+• SF/min, SA/min et Shot Share % montrent l'effet d'équipe pendant le temps de glace du joueur
+• MVP Points combine tout en une évaluation globale`
         },
         
         'game-center': {
@@ -260,6 +452,8 @@ Statistikzellen (z. B. Goals, Shot):
 • Bei +1 auf Goals/Shot startet je nach Ereignis der Goal- bzw. Shot-Workflow in der Goal Map.
 
 Gegner-Schüsse: In der Shot-Totals-Zelle (unten) per Klick/Doppelklick zählen.
+
+Download: Spieldaten werden als Excel heruntergeladen.
 
 Export Season: Spieldaten werden zu Saisonstatistiken addiert. Dabei werden Sie gebeten, einen Goal Value Wert einzugeben. Bsp: 1 Stern = sehr schwacher Gegner, einfach Tore zu erzielen, Gegner am untersten Tabellen Ende, Chance auf viele Schüsse. 10 Sterne = Sehr starker Gegner, Tabellen Leader, Schwer Chancen zu bekommen, eher weniger Schüsse zugelassen.
 
@@ -278,6 +472,8 @@ Statistic Cells (e.g. Goals, Shot):
 
 Opponent shots: Count in the Shot-Totals cell (bottom) via click/double-click.
 
+Download: Game data is downloaded as Excel.
+
 Export Season: Game data is added to season statistics. You will be asked to enter a Goal Value. Example: 1 star = very weak opponent, easy to score goals, opponent at the bottom of the table, chance for many shots. 10 stars = Very strong opponent, table leader, hard to get chances, fewer shots allowed.
 
 With button (☀️/🌙) you can switch between Light and Dark Mode.`,
@@ -294,6 +490,8 @@ With button (☀️/🌙) you can switch between Light and Dark Mode.`,
 • При +1 на Goals/Shot запускается соответствующий процесс в Goal Map.
 
 Броски соперника: Считать в ячейке Shot-Totals (внизу) кликом/двойным кликом.
+
+Download: Данные игры скачиваются в Excel.
 
 Export Season: Данные игры добавляются к сезонной статистике. Вас попросят ввести Goal Value. Пример: 1 звезда = очень слабый соперник, 10 звёзд = очень сильный соперник.
 
@@ -312,6 +510,8 @@ Statistikceller (t.ex. Goals, Shot):
 
 Motståndarskott: Räkna i Shot-Totals-cellen (nere) via klick/dubbelklick.
 
+Download: Speldata laddas ner som Excel.
+
 Export Season: Speldata läggs till säsongsstatistik. Du kommer att bli ombedd att ange ett Goal Value. Exempel: 1 stjärna = mycket svag motståndare, 10 stjärnor = mycket stark motståndare.
 
 Med knappen (☀️/🌙) kan du växla mellan ljust och mörkt läge.`,
@@ -329,6 +529,8 @@ Tilastosolut (esim. Goals, Shot):
 
 Vastustajan laukaukset: Laske Shot-Totals-solussa (alhaalla) klikkauksella/tuplaklikkauksella.
 
+Download: Pelitiedot ladataan Excelinä.
+
 Export Season: Pelitiedot lisätään kauden tilastoihin. Sinua pyydetään syöttämään Goal Value. Esimerkki: 1 tähti = erittäin heikko vastustaja, 10 tähteä = erittäin vahva vastustaja.
 
 Painikkeella (☀️/🌙) voit vaihtaa vaalean ja tumman tilan välillä.`,
@@ -345,6 +547,8 @@ Cellules statistiques (p.ex. Goals, Shot):
 • Lors de +1 sur Goals/Shot, le workflow Goal ou Shot démarre dans Goal Map.
 
 Tirs adverses: Compter dans la cellule Shot-Totals (en bas) via clic/double-clic.
+
+Download: Les données du match sont téléchargées en tant qu'Excel.
 
 Export Season: Les données du match sont ajoutées aux statistiques de saison. On vous demandera d'entrer une valeur Goal Value. Ex: 1 étoile = adversaire très faible, 10 étoiles = adversaire très fort.
 
@@ -396,7 +600,7 @@ Reset efface toutes les valeurs, les échelles et les noms des adversaires.`
         },
         
         'goal-map': {
-            de: `🎯 Goal Map / Torbild
+            de: `🎯 Goal Map
 
 Feldhälften: Grün/Oben = scored / Rot/Unten = conceded
 
@@ -568,7 +772,7 @@ Export Season Map: Les points sont ajoutés à Season Map`
         'season-map': {
             de: `🗺️ Season Map
 
-• Only read
+• Nur Ansicht
 
 Filter:
 • Player-Filter: Zeigt/aggregiert grüne (scored) Werte nur für diesen Spieler.
