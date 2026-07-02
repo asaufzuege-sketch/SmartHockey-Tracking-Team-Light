@@ -285,6 +285,11 @@ async function initializeApp() {
   
   // 12. Daten vor Seitenabschluss speichern
   const saveAllAppData = () => {
+    // Skip while restore is in progress — freshly restored backup data must not be overwritten
+    if (sessionStorage.getItem('smarthockey_restored')) {
+      console.log('[App] Skipping saveAllAppData — restore in progress');
+      return;
+    }
     try {
       // Safety: Don't save empty app state if localStorage has real data
       const hasDataInStorage = Object.keys(localStorage).some(k => k.startsWith('sLight_'));
