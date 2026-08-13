@@ -184,6 +184,74 @@ async function initializeApp() {
     input.click();
   });
 
+  // ── Legal & Rate Buttons ──
+  const RATE_APP_URL = "https://play.google.com/store/apps/details?id=io.github.asaufzuege_sketch.smarthockey_light";
+
+  function openExternalLink(url) {
+    try {
+      if (window.Android && typeof window.Android.openExternalUrl === 'function') {
+        window.Android.openExternalUrl(url);
+      } else {
+        window.open(url, '_blank', 'noopener,noreferrer');
+      }
+    } catch (e) {
+      window.location.href = url;
+    }
+  }
+
+  document.getElementById('privacyPolicyBtn')?.addEventListener('click', () => {
+    openExternalLink('./privacy.html');
+  });
+
+  document.getElementById('termsOfServiceBtn')?.addEventListener('click', () => {
+    openExternalLink('./terms.html');
+  });
+
+  document.getElementById('rateAppBtn')?.addEventListener('click', () => {
+    openExternalLink(RATE_APP_URL);
+  });
+
+  // ── Exit Confirmation (back-button guard on top-level page) ──
+  function showExitConfirmation() {
+    const modal = document.getElementById('exitConfirmModal');
+    if (modal) modal.style.display = 'flex';
+  }
+
+  function hideExitConfirmation() {
+    const modal = document.getElementById('exitConfirmModal');
+    if (modal) modal.style.display = 'none';
+  }
+
+  document.getElementById('exitCancelBtn')?.addEventListener('click', () => {
+    hideExitConfirmation();
+    history.pushState({ exitGuard: true }, '');
+  });
+
+  document.getElementById('exitConfirmBtn')?.addEventListener('click', () => {
+    hideExitConfirmation();
+    history.go(-2);
+  });
+
+  function syncHistoryForPage(pageName) {
+    if (pageName === 'teamSelection') {
+      history.replaceState({ exitGuard: false }, '');
+      history.pushState({ exitGuard: true }, '');
+    }
+  }
+
+  function createExitGuardState() {
+    history.pushState({ exitGuard: true }, '');
+  }
+
+  window.addEventListener('popstate', (e) => {
+    const currentPage = App.storage.getCurrentPage?.() || 'teamSelection';
+    if (currentPage === 'teamSelection') {
+      showExitConfirmation();
+    }
+  });
+
+  createExitGuardState();
+
   // 8. Navigation Event Listeners
   document.getElementById("teamSelectionInfoBtn")?.addEventListener("click", () => {
     App.teamSelection?.showInfo();
