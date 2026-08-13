@@ -211,39 +211,115 @@ async function initializeApp() {
     openExternalLink(RATE_APP_URL);
   });
 
-  // ── Exit Confirmation (back-button guard on top-level page) ──
-  function showExitConfirmation() {
-    const modal = document.getElementById('exitConfirmModal');
-    if (modal) modal.style.display = 'flex';
+  // ── Exit Confirmation (history/exit-guard — ported from Pro) ──
+  const TOP_LEVEL_PAGE = "teamSelection";
+  const historyPageStateKey = "smhLight_page";
+  const historyExitGuardStateKey = "smhLight_exitGuard";
+
+  function getDefaultHistoryPath(page) {
+    const paths = {
+      teamSelection: "/teamSelection",
+      selection: "/selection",
+      stats: "/stats",
+      torbild: "/torbild",
+      goalValue: "/goalValue",
+      season: "/season",
+      seasonMap: "/seasonMap",
+      lineUp: "/lineUp"
+    };
+    return paths[page] || ("/" + page);
   }
 
-  function hideExitConfirmation() {
-    const modal = document.getElementById('exitConfirmModal');
-    if (modal) modal.style.display = 'none';
+  function createPageState(page) {
+    return { [historyPageStateKey]: page };
+  }
+
+  function createExitGuardState() {
+    return { [historyPageStateKey]: TOP_LEVEL_PAGE, [historyExitGuardStateKey]: true };
+  }
+
+  let suppressHistorySync = false;
+  let exitGuardArmed = false;
+  let exitConfirmationInProgress = false;
+
+  const originalShowPage = App.showPage.bind(App);
+
+  App.showPage = function(page) {
+    originalShowPage(page);
+    if (!suppressHistorySync) {
+      syncHistoryForPage(page);
+    }
+  };
+
+  function seedNavigationHistory(initialPage) {
+    history.replaceState(createPageState(initialPage), "", getDefaultHistoryPath(initialPage));
+    if (initialPage === TOP_LEVEL_PAGE) {
+      history.pushState(createExitGuardState(), "", getDefaultHistoryPath(TOP_LEVEL_PAGE));
+      exitGuardArmed = true;
+    }
+  }
+
+  function syncHistoryForPage(page) {
+    if (page === TOP_LEVEL_PAGE) {
+      history.pushState(createPageState(TOP_LEVEL_PAGE), "", getDefaultHistoryPath(TOP_LEVEL_PAGE));
+      history.pushState(createExitGuardState(), "", getDefaultHistoryPath(TOP_LEVEL_PAGE));
+      exitGuardArmed = true;
+    } else {
+      history.pushState(createPageState(page), "", getDefaultHistoryPath(page));
+      exitGuardArmed = false;
+    }
+  }
+
+  const exitConfirmModal = document.getElementById('exitConfirmModal');
+
+  function showExitConfirmation() {
+    exitConfirmationInProgress = true;
+    if (exitConfirmModal) exitConfirmModal.style.display = 'flex';
+  }
+
+  function closeExitConfirmation(rearm) {
+    exitConfirmationInProgress = false;
+    if (exitConfirmModal) exitConfirmModal.style.display = 'none';
+    if (rearm) {
+      history.pushState(createExitGuardState(), "", getDefaultHistoryPath(TOP_LEVEL_PAGE));
+      exitGuardArmed = true;
+    }
+  }
+
+  function exitApp() {
+    exitGuardArmed = false;
+    exitConfirmationInProgress = false;
+    history.back();
   }
 
   document.getElementById('exitCancelBtn')?.addEventListener('click', () => {
-    hideExitConfirmation();
-    history.pushState({ exitGuard: true }, '');
+    closeExitConfirmation(true);
   });
 
   document.getElementById('exitConfirmBtn')?.addEventListener('click', () => {
-    hideExitConfirmation();
-    history.go(-1);
+    closeExitConfirmation(false);
+    exitApp();
   });
 
-  function createExitGuardState() {
-    history.pushState({ exitGuard: true }, '');
-  }
-
-  window.addEventListener('popstate', (e) => {
-    const currentPage = App.storage.getCurrentPage?.() || 'teamSelection';
-    if (currentPage === 'teamSelection') {
-      showExitConfirmation();
+  exitConfirmModal?.addEventListener('click', (e) => {
+    if (e.target === exitConfirmModal) {
+      closeExitConfirmation(true);
     }
   });
 
-  createExitGuardState();
+  window.addEventListener('popstate', (e) => {
+    if (exitConfirmationInProgress) return;
+    const state = e.state || {};
+    const targetPage = state[historyPageStateKey] || TOP_LEVEL_PAGE;
+    const previousPage = App.storage.getCurrentPage?.() || TOP_LEVEL_PAGE;
+    if (targetPage === TOP_LEVEL_PAGE && previousPage === TOP_LEVEL_PAGE && exitGuardArmed) {
+      showExitConfirmation();
+    } else {
+      suppressHistorySync = true;
+      originalShowPage(targetPage);
+      suppressHistorySync = false;
+    }
+  });
 
   // 8. Navigation Event Listeners
   document.getElementById("teamSelectionInfoBtn")?.addEventListener("click", () => {
@@ -339,7 +415,10 @@ async function initializeApp() {
     initialPage = lastPage;
   }
   
-  App.showPage(initialPage);
+  suppressHistorySync = true;
+  originalShowPage(initialPage);
+  suppressHistorySync = false;
+  seedNavigationHistory(initialPage);
   
   // 11. Timer Persistenz - Laufende Timer aus LocalStorage wiederherstellen
   App.restoreActiveTimers();

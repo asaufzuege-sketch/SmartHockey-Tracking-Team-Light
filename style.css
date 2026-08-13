@@ -85,3 +85,30 @@
 .cancel-btn:hover {
   background: #4a4a4a;
 }
+
+/* ── Exit-confirmation modal buttons (shared size/format) ── */
+.exit-modal-btn {
+  min-width: 120px;
+  padding: 10px 20px;
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+  box-sizing: border-box;
+}
+.exit-modal-btn--cancel {
+  background: #3a3a3a;
+  color: #fff;
+}
+.exit-modal-btn--cancel:hover {
+  background: #4a4a4a;
+}
+.exit-modal-btn--confirm {
+  background: #c0392b;
+  color: #fff;
+}
+.exit-modal-btn--confirm:hover {
+  background: #a93226;
+}
