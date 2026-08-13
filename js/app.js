@@ -229,15 +229,8 @@ async function initializeApp() {
 
   document.getElementById('exitConfirmBtn')?.addEventListener('click', () => {
     hideExitConfirmation();
-    history.go(-2);
+    history.go(-1);
   });
-
-  function syncHistoryForPage(pageName) {
-    if (pageName === 'teamSelection') {
-      history.replaceState({ exitGuard: false }, '');
-      history.pushState({ exitGuard: true }, '');
-    }
-  }
 
   function createExitGuardState() {
     history.pushState({ exitGuard: true }, '');
