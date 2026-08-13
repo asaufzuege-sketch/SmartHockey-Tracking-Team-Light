@@ -1,5 +1,5 @@
 // KRITISCH: Feste Version, die bei JEDER Änderung erhöht werden muss!
-const CACHE_VERSION = 'v3.2.9';
+const CACHE_VERSION = 'v3.3.0';
 const CACHE_NAME = 'smarthockey-' + CACHE_VERSION;
 const IMAGE_FILE_PATTERN = /\.(png|jpg|jpeg|svg|webp)$/i;
 
