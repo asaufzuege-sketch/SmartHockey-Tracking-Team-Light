@@ -5,10 +5,10 @@
   <title>SmartHockey Light</title>
   <script>
     (function () {
-      var target = '/SmartHockey-Tracking-Team-Light/';
-      // Loop guard: only redirect if not already inside the project folder
-      if (window.location.pathname.indexOf('/SmartHockey-Tracking-Team-Light/') !== 0) {
-        // Insert meta-refresh as fallback before JS redirect
+      var target = '/SmartHockey-Tracking-Team-Light/index.html';
+      var current = window.location.pathname;
+      // Only redirect when we are not already on the app entry point
+      if (current.indexOf('/SmartHockey-Tracking-Team-Light/index.html') !== 0) {
         document.write('<meta http-equiv="refresh" content="0;url=' + target + '">');
         window.location.replace(target);
       }
