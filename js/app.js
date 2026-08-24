@@ -400,19 +400,23 @@ async function initializeApp() {
   }, true);
   
   // 10. Initiale Seite anzeigen
-  // NEU: benutze getCurrentTeamInfo() statt getCurrentTeam()
+  const RESUME_THRESHOLD_MS = 10 * 60 * 1000; // 10 Minuten
   const teamInfo = App.teamSelection.getCurrentTeamInfo();
-  const currentTeam = teamInfo?.id; // z.B. "team1"
+  const currentTeam = teamInfo?.id;
   const lastPage = App.storage.getCurrentPage();
-  
-  // Wenn kein Team ausgewählt ist, zur Teamauswahl
+  const lastActiveRaw = AppStorage.getItem("lastActiveTimestamp");
+  const lastActive = lastActiveRaw ? parseInt(lastActiveRaw, 10) : NaN;
+  const withinResumeWindow = Number.isFinite(lastActive) && (Date.now() - lastActive) <= RESUME_THRESHOLD_MS;
+
   let initialPage;
   if (!currentTeam) {
     initialPage = "teamSelection";
-  } else if (lastPage === "selection" || !App.data.selectedPlayers.length) {
-    initialPage = "selection";
-  } else {
+  } else if (withinResumeWindow && lastPage && lastPage !== "teamSelection") {
+    // Kurz verlassen → letzte benutzte Seite wiederherstellen
     initialPage = lastPage;
+  } else {
+    // Erstmalig / komplett geschlossen / längere Abwesenheit
+    initialPage = "teamSelection";
   }
   
   suppressHistorySync = true;
@@ -424,6 +428,20 @@ async function initializeApp() {
   App.restoreActiveTimers();
   
   // 12. Daten vor Seitenabschluss speichern
+  const getCurrentVisiblePage = () => {
+    const visibleEntry = Object.entries(App.pages || {}).find(([, pageEl]) => pageEl && pageEl.style.display !== "none");
+    return visibleEntry?.[0] || App.storage.getCurrentPage() || "teamSelection";
+  };
+
+  const persistLastActiveState = () => {
+    try {
+      App.storage.setCurrentPage(getCurrentVisiblePage());
+      AppStorage.setItem("lastActiveTimestamp", String(Date.now()));
+    } catch (e) {
+      console.warn("Failed to persist last active state:", e);
+    }
+  };
+
   const saveAllAppData = () => {
     // Skip while restore is in progress — freshly restored backup data must not be overwritten
     if (sessionStorage.getItem('smarthockey_restored')) {
@@ -454,14 +472,21 @@ async function initializeApp() {
     }
   };
   
-  window.addEventListener("beforeunload", saveAllAppData);
+  window.addEventListener("beforeunload", () => {
+    persistLastActiveState();
+    saveAllAppData();
+  });
   
   // pagehide event is more reliable on iOS/Safari for mobile devices
-  window.addEventListener("pagehide", saveAllAppData);
+  window.addEventListener("pagehide", () => {
+    persistLastActiveState();
+    saveAllAppData();
+  });
   
   // 13. Page Visibility API - Save all data when app goes to background
   document.addEventListener("visibilitychange", () => {
     if (document.hidden) {
+      persistLastActiveState();
       saveAllAppData();
     } else {
       App.restoreActiveTimers();
