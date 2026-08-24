@@ -216,7 +216,12 @@ async function initializeApp() {
   const historyPageStateKey = "smhLight_page";
   const historyExitGuardStateKey = "smhLight_exitGuard";
 
+  function getBasePath() {
+    return "/SmartHockey-Tracking-Team-Light";
+  }
+
   function getDefaultHistoryPath(page) {
+    const base = getBasePath();
     const paths = {
       teamSelection: "/teamSelection",
       selection: "/selection",
@@ -227,7 +232,7 @@ async function initializeApp() {
       seasonMap: "/seasonMap",
       lineUp: "/lineUp"
     };
-    return paths[page] || ("/" + page);
+    return base + (paths[page] || ("/" + page));
   }
 
   function createPageState(page) {
