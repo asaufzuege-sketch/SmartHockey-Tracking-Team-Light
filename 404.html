@@ -9,7 +9,10 @@
       var current = window.location.pathname;
       // Only redirect when we are not already on the app entry point
       if (current.indexOf('/SmartHockey-Tracking-Team-Light/index.html') !== 0) {
-        document.write('<meta http-equiv="refresh" content="0;url=' + target + '">');
+        var meta = document.createElement('meta');
+        meta.httpEquiv = 'refresh';
+        meta.content = '0;url=' + target;
+        document.head.appendChild(meta);
         window.location.replace(target);
       }
     })();
