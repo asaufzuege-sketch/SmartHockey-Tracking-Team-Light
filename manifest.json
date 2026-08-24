@@ -2,34 +2,34 @@
   "name": "SmartHockey Team Tracker Light",
   "short_name": "Hockey Light",
   "description": "Free ice hockey stats tracker for coaches and players",
-  "start_url": "./",
+  "start_url": "/SmartHockey-Tracking-Team-Light/",
   "display": "standalone",
-  "scope": "./",
+  "scope": "/SmartHockey-Tracking-Team-Light/",
   "id": "io.github.asaufzuege_sketch.smarthockey_light",
   "orientation": "portrait-primary",
   "background_color": "#1a1a2e",
   "theme_color": "#266EFF",
   "icons": [
     {
-      "src": "icons/icon-192.png",
+      "src": "/SmartHockey-Tracking-Team-Light/icons/icon-192.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "icons/icon-512.png",
+      "src": "/SmartHockey-Tracking-Team-Light/icons/icon-512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "icons/icon-192.png",
+      "src": "/SmartHockey-Tracking-Team-Light/icons/icon-192.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "maskable"
     },
     {
-      "src": "icons/icon-512.png",
+      "src": "/SmartHockey-Tracking-Team-Light/icons/icon-512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "maskable"

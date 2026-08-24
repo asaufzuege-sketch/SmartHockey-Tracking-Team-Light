@@ -5,12 +5,12 @@
   <title>SmartHockey Light</title>
   <script>
     (function () {
-      // Avoid redirect loop: only redirect if not already on index.html
-      var path = window.location.pathname;
-      if (path.indexOf('index.html') === -1) {
-        // Determine base path dynamically (up to and including the repo folder)
-        var base = path.replace(/\/[^\/]*$/, '/');
-        window.location.replace(base + 'index.html');
+      var target = '/SmartHockey-Tracking-Team-Light/';
+      // Loop guard: only redirect if not already inside the project folder
+      if (window.location.pathname.indexOf('/SmartHockey-Tracking-Team-Light/') !== 0) {
+        // Insert meta-refresh as fallback before JS redirect
+        document.write('<meta http-equiv="refresh" content="0;url=' + target + '">');
+        window.location.replace(target);
       }
     })();
   </script>
