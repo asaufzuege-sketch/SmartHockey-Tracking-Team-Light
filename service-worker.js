@@ -1,5 +1,5 @@
 // KRITISCH: Feste Version, die bei JEDER Änderung erhöht werden muss!
-const CACHE_VERSION = 'v3.3.0';
+const CACHE_VERSION = 'v3.4.0';
 const CACHE_NAME = 'smarthockey-' + CACHE_VERSION;
 const IMAGE_FILE_PATTERN = /\.(png|jpg|jpeg|svg|webp)$/i;
 
@@ -120,9 +120,31 @@ self.addEventListener('activate', event => {
 self.addEventListener('fetch', event => {
   const url = new URL(event.request.url);
   
-  // Für HTML, JS, CSS: Immer zuerst vom Netzwerk holen
+  // Für HTML/Navigations-Requests: Network-First, Fallback auf gecachte index.html
   if (event.request.destination === 'document' ||
-      url.pathname.endsWith('.js') ||
+      event.request.mode === 'navigate') {
+    event.respondWith(
+      fetch(event.request)
+        .then(response => {
+          if (!response || !response.ok) {
+            // Netzwerk lieferte Fehler (z.B. 404 für SPA-Route) → index.html aus Cache
+            return caches.match('./index.html?v=' + CACHE_VERSION, { ignoreSearch: true })
+              .then(r => r || caches.match('./'));
+          }
+          // Speichere im Cache für offline
+          const responseClone = response.clone();
+          caches.open(CACHE_NAME).then(cache => {
+            cache.put(event.request, responseClone);
+          });
+          return response;
+        })
+        .catch(() => {
+          // Offline: gecachte index.html zurückgeben
+          return caches.match('./index.html?v=' + CACHE_VERSION, { ignoreSearch: true })
+            .then(r => r || caches.match('./'));
+        })
+    );
+  } else if (url.pathname.endsWith('.js') ||
       url.pathname.endsWith('.css')) {
     event.respondWith(
       fetch(event.request)
