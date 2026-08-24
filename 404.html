@@ -8,7 +8,7 @@
       var target = '/SmartHockey-Tracking-Team-Light/index.html';
       var current = window.location.pathname;
       // Only redirect when we are not already on the app entry point
-      if (current.indexOf('/SmartHockey-Tracking-Team-Light/index.html') !== 0) {
+      if (current !== target) {
         var meta = document.createElement('meta');
         meta.httpEquiv = 'refresh';
         meta.content = '0;url=' + target;

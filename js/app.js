@@ -246,12 +246,12 @@ async function initializeApp() {
 
   App.showPage = function(page) {
     originalShowPage(page);
-    try {
-      AppStorage.setItem("lastActiveTimestamp", String(Date.now()));
-    } catch (e) {
-      console.warn("Failed to update last active timestamp on page change:", e);
-    }
     if (!suppressHistorySync) {
+      try {
+        AppStorage.setItem("lastActiveTimestamp", String(Date.now()));
+      } catch (e) {
+        console.warn("Failed to update last active timestamp on page change:", e);
+      }
       syncHistoryForPage(page);
     }
   };
