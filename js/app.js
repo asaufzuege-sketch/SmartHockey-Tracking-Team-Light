@@ -429,7 +429,7 @@ async function initializeApp() {
   
   // 12. Daten vor Seitenabschluss speichern
   const getCurrentVisiblePage = () => {
-    const visibleEntry = Object.entries(App.pages || {}).find(([, pageEl]) => pageEl && pageEl.style.display !== "none");
+    const visibleEntry = Object.entries(App.pages || {}).find(([, pageEl]) => pageEl && getComputedStyle(pageEl).display !== "none");
     return visibleEntry?.[0] || App.storage.getCurrentPage() || "teamSelection";
   };
 
