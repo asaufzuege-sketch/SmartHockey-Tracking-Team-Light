@@ -416,7 +416,20 @@ App.statsTable = {
     };
 
     // Mobile touch: single tap = +10s, double tap = -10s
+    let timeTouchStartX = 0, timeTouchStartY = 0, timeMoved = false;
+    timeTd.addEventListener("touchstart", (e) => {
+      const t = e.touches[0];
+      if (t) { timeTouchStartX = t.clientX; timeTouchStartY = t.clientY; }
+      timeMoved = false;
+    }, { passive: true });
+    timeTd.addEventListener("touchmove", (e) => {
+      const t = e.changedTouches[0];
+      if (t && (Math.abs(t.clientX - timeTouchStartX) > 10 || Math.abs(t.clientY - timeTouchStartY) > 10)) {
+        timeMoved = true;
+      }
+    }, { passive: true });
     timeTd.addEventListener("touchend", (e) => {
+      if (timeMoved) { timeMoved = false; e.preventDefault(); return; }
       e.preventDefault();
       e.stopPropagation();
       const now = Date.now();
@@ -483,7 +496,20 @@ App.statsTable = {
       };
 
       // Mobile: single tap = +1, double tap = -1
+      let tdTouchStartX = 0, tdTouchStartY = 0, tdMoved = false;
+      td.addEventListener("touchstart", (e) => {
+        const t = e.touches[0];
+        if (t) { tdTouchStartX = t.clientX; tdTouchStartY = t.clientY; }
+        tdMoved = false;
+      }, { passive: true });
+      td.addEventListener("touchmove", (e) => {
+        const t = e.changedTouches[0];
+        if (t && (Math.abs(t.clientX - tdTouchStartX) > 10 || Math.abs(t.clientY - tdTouchStartY) > 10)) {
+          tdMoved = true;
+        }
+      }, { passive: true });
       td.addEventListener("touchend", (e) => {
+        if (tdMoved) { tdMoved = false; e.preventDefault(); return; }
         e.preventDefault();
         e.stopPropagation();
         const now = Date.now();
@@ -534,7 +560,20 @@ App.statsTable = {
         this.updateTotals();
       };
 
+      let oppTouchStartX = 0, oppTouchStartY = 0, oppMoved = false;
+      shotTotalCell.addEventListener("touchstart", (e) => {
+        const t = e.touches[0];
+        if (t) { oppTouchStartX = t.clientX; oppTouchStartY = t.clientY; }
+        oppMoved = false;
+      }, { passive: true });
+      shotTotalCell.addEventListener("touchmove", (e) => {
+        const t = e.changedTouches[0];
+        if (t && (Math.abs(t.clientX - oppTouchStartX) > 10 || Math.abs(t.clientY - oppTouchStartY) > 10)) {
+          oppMoved = true;
+        }
+      }, { passive: true });
       shotTotalCell.addEventListener("touchend", (e) => {
+        if (oppMoved) { oppMoved = false; e.preventDefault(); return; }
         e.preventDefault();
         e.stopPropagation();
         const now = Date.now();
