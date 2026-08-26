@@ -103,3 +103,48 @@
 .exit-modal-btn--confirm:hover {
   background: #a93226;
 }
+
+.get-pro-wrapper {
+  margin: 12px auto 0 auto;
+  max-width: 600px;
+}
+
+.get-pro-btn {
+  background: #266EFF;
+  color: #fff;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.get-pro-btn:hover,
+.get-pro-btn:active {
+  background: #1f57cc;
+  color: #fff;
+}
+
+.get-pro-top-btn {
+  background: #000;
+  color: #fff;
+  text-decoration: none;
+}
+
+.get-pro-top-btn:hover,
+.get-pro-top-btn:active {
+  background: #222;
+  color: #fff;
+}
+
+[data-theme="dark"] .get-pro-top-btn {
+  background: #fff;
+  color: #000;
+}
+
+[data-theme="dark"] .get-pro-top-btn:hover,
+[data-theme="dark"] .get-pro-top-btn:active {
+  background: #eaeaea;
+  color: #000;
+}
